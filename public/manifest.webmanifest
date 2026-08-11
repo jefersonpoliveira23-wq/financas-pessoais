@@ -1,0 +1,19 @@
+{
+  "name": "Finanças Pessoais",
+  "short_name": "Finanças",
+  "description": "Gerencie contas, cartões, orçamento, dívidas, metas e projeções de saldo em um só lugar.",
+  "start_url": "/inicio",
+  "id": "/inicio",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F7F8FA",
+  "theme_color": "#0B3B4C",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
