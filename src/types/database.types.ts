@@ -35,6 +35,16 @@ export type RecurrenceFrequency =
 
 export type RecurrenceStatus = 'ativa' | 'pausada' | 'encerrada'
 
+export type DebtStatus = 'ativa' | 'quitada' | 'renegociada'
+
+export type GoalMode = 'independente' | 'alocado'
+
+export type GoalStatus = 'ativa' | 'concluida' | 'arquivada'
+
+export type AssetCategory = 'imovel' | 'veiculo' | 'investimento' | 'negocio' | 'outro'
+
+export type LiabilityCategory = 'financiamento_imovel' | 'financiamento_veiculo' | 'emprestimo' | 'outro'
+
 export interface Database {
   public: {
     Tables: {
@@ -450,6 +460,250 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['audit_logs']['Insert']>
         Relationships: []
       }
+      budgets: {
+        Row: {
+          id: string
+          user_id: string
+          category_id: string
+          month: string
+          amount: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          category_id: string
+          month: string
+          amount: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['budgets']['Insert']>
+        Relationships: []
+      }
+      debts: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          creditor: string | null
+          original_amount: number
+          outstanding_balance: number
+          monthly_interest_rate: number
+          minimum_payment: number
+          due_day: number | null
+          status: DebtStatus
+          settled_at: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          creditor?: string | null
+          original_amount: number
+          outstanding_balance: number
+          monthly_interest_rate?: number
+          minimum_payment?: number
+          due_day?: number | null
+          status?: DebtStatus
+          settled_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['debts']['Insert']>
+        Relationships: []
+      }
+      debt_payments: {
+        Row: {
+          id: string
+          user_id: string
+          debt_id: string
+          payment_date: string
+          amount: number
+          interest_portion: number | null
+          principal_portion: number | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          debt_id: string
+          payment_date: string
+          amount: number
+          interest_portion?: number | null
+          principal_portion?: number | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['debt_payments']['Insert']>
+        Relationships: []
+      }
+      goals: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string | null
+          mode: GoalMode
+          target_amount: number
+          target_date: string | null
+          linked_account_id: string | null
+          is_emergency_fund: boolean
+          status: GoalStatus
+          color: string | null
+          icon: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string | null
+          mode?: GoalMode
+          target_amount: number
+          target_date?: string | null
+          linked_account_id?: string | null
+          is_emergency_fund?: boolean
+          status?: GoalStatus
+          color?: string | null
+          icon?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['goals']['Insert']>
+        Relationships: []
+      }
+      goal_contributions: {
+        Row: {
+          id: string
+          user_id: string
+          goal_id: string
+          contribution_date: string
+          amount: number
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          goal_id: string
+          contribution_date: string
+          amount: number
+          notes?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['goal_contributions']['Insert']>
+        Relationships: []
+      }
+      assets: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          category: AssetCategory
+          current_value: number
+          acquisition_value: number | null
+          acquisition_date: string | null
+          notes: string | null
+          is_archived: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          category?: AssetCategory
+          current_value: number
+          acquisition_value?: number | null
+          acquisition_date?: string | null
+          notes?: string | null
+          is_archived?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['assets']['Insert']>
+        Relationships: []
+      }
+      liabilities: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          category: LiabilityCategory
+          current_value: number
+          linked_debt_id: string | null
+          notes: string | null
+          is_archived: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          category?: LiabilityCategory
+          current_value: number
+          linked_debt_id?: string | null
+          notes?: string | null
+          is_archived?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['liabilities']['Insert']>
+        Relationships: []
+      }
+      asset_value_history: {
+        Row: {
+          id: string
+          user_id: string
+          asset_id: string
+          reference_date: string
+          value: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          asset_id: string
+          reference_date: string
+          value: number
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['asset_value_history']['Insert']>
+        Relationships: []
+      }
+      monthly_plans: {
+        Row: {
+          id: string
+          user_id: string
+          month: string
+          expected_income: number
+          planned_savings: number
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          month: string
+          expected_income?: number
+          planned_savings?: number
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['monthly_plans']['Insert']>
+        Relationships: []
+      }
     }
     Views: {
       account_balances: {
@@ -470,6 +724,28 @@ export interface Database {
           credit_limit: number
           used_limit: number
           available_limit: number
+        }
+        Relationships: []
+      }
+      budget_progress: {
+        Row: {
+          budget_id: string
+          user_id: string
+          category_id: string
+          month: string
+          budgeted: number
+          spent: number
+        }
+        Relationships: []
+      }
+      net_worth_summary: {
+        Row: {
+          user_id: string
+          accounts_total: number
+          assets_total: number
+          liabilities_total: number
+          debts_total: number
+          net_worth: number
         }
         Relationships: []
       }
@@ -496,6 +772,17 @@ export interface Database {
       confirm_import: {
         Args: { p_import_id: string; p_new_categories: unknown; p_rows: unknown }
         Returns: Database['public']['Tables']['transactions']['Row'][]
+      }
+      register_debt_payment: {
+        Args: {
+          p_debt_id: string
+          p_payment_date: string
+          p_amount: number
+          p_interest_portion?: number | null
+          p_principal_portion?: number | null
+          p_notes?: string | null
+        }
+        Returns: string
       }
     }
   }

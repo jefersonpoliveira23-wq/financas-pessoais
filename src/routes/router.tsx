@@ -10,6 +10,11 @@ import { AccountsPage } from '@/features/accounts/AccountsPage'
 import { CardsPage } from '@/features/cards/CardsPage'
 import { CalendarPage } from '@/features/calendar/CalendarPage'
 import { ImportPage } from '@/features/import/ImportPage'
+import { BudgetPage } from '@/features/budget/BudgetPage'
+import { PlanningPage } from '@/features/planning/PlanningPage'
+import { DebtsPage } from '@/features/debts/DebtsPage'
+import { GoalsPage } from '@/features/goals/GoalsPage'
+import { NetWorthPage } from '@/features/networth/NetWorthPage'
 import { TransactionsPage } from '@/features/transactions/TransactionsPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { ComingSoon } from '@/components/layout/ComingSoon'
@@ -43,6 +48,11 @@ export const router = createBrowserRouter([
           { path: '/contas', element: <AccountsPage /> },
           { path: '/cartoes', element: <CardsPage /> },
           { path: '/calendario', element: <CalendarPage /> },
+          { path: '/orcamento', element: <BudgetPage /> },
+          { path: '/planejamento', element: <PlanningPage /> },
+          { path: '/dividas', element: <DebtsPage /> },
+          { path: '/metas', element: <GoalsPage /> },
+          { path: '/patrimonio', element: <NetWorthPage /> },
           { path: '/importar', element: <ImportPage /> },
           { path: '/configuracoes', element: <SettingsPage /> },
           ...comingSoonRoutes,

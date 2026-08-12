@@ -5,7 +5,7 @@ categorias e um dashboard que mostra sua situação financeira real — com
 autenticação, banco de dados relacional protegido por Row Level Security e
 100% em português do Brasil.
 
-> **Status do projeto:** Fases 1 e 2 de 4 concluídas (Fundação + Operações
+> **Status do projeto:** Fases 1, 2 e 3 de 4 concluídas (Fundação + Operações
 > financeiras). Veja a seção [Status de implementação](#status-de-implementação)
 > para o que já funciona e o que está planejado para as próximas fases.
 
@@ -92,7 +92,8 @@ aplicá-las de duas formas:
 1. No painel do Supabase, abra **SQL Editor**.
 2. Abra, **nesta ordem**, cada arquivo em `supabase/migrations/` deste
    repositório (`0001_fase1_fundacao.sql`, `0002_fase2_operacoes.sql`,
-   `0003_fase2_importacao.sql`), copie o conteúdo e execute (▶ Run) um de
+   `0003_fase2_importacao.sql`, `0004_fase3_planejamento.sql`), copie o
+   conteúdo e execute (▶ Run) um de
    cada vez — a ordem importa, pois as migrations seguintes dependem das
    tabelas criadas nas anteriores.
 3. A criação das tabelas é idempotente (`create table if not exists`), mas
@@ -207,10 +208,11 @@ where schemaname = 'public';
 ## Status de implementação
 
 O projeto foi combinado para ser construído em 4 fases. Este entregável
-cobre a **Fase 1 — Fundação** e a **Fase 2 — Operações financeiras** por
-completo e de forma real (não há dados fixos nem telas decorativas).
+cobre a **Fase 1 — Fundação**, a **Fase 2 — Operações financeiras** e a
+**Fase 3 — Planejamento** por completo e de forma real (não há dados fixos
+nem telas decorativas).
 
-### ✅ Funcional nesta entrega (Fases 1 e 2)
+### ✅ Funcional nesta entrega (Fases 1, 2 e 3)
 
 **Fundação (Fase 1)**
 - Cadastro, login, logout, recuperação de senha, alteração de senha, perfil
@@ -251,9 +253,34 @@ completo e de forma real (não há dados fixos nem telas decorativas).
   ausentes, detecção de possível duplicidade, hash do arquivo com aviso de
   reimportação, relatório de erros para download, histórico de importações,
   confirmação transacional via RPC (`confirm_import`)
-- 67 testes automatizados (Vitest + Testing Library), incluindo cálculo de
-  fatura, geração de parcelas, projeção diária de saldo e parser/validação/
-  detecção de duplicidade da importação TXT
+**Planejamento (Fase 3)**
+
+- **Orçamento mensal**: limite por categoria com orçado × realizado calculado
+  no banco (view `budget_progress` — soma despesas e compras no cartão do mês
+  de competência, nunca transferências), barra de consumo com estados
+  ok/alerta (80%)/estourado, navegação entre meses e cópia dos orçamentos do
+  mês anterior
+- **Dívidas**: cadastro com saldo devedor, juros mensais, pagamento mínimo e
+  vencimento; registro de pagamento atômico via RPC (`register_debt_payment`,
+  `security invoker`) que abate o saldo e marca quitação automática;
+  **simulador de quitação** comparando bola de neve × avalanche (tempo,
+  total pago, juros e ordem de quitação — 100% no navegador, nada é gravado)
+- **Metas**: modo independente (aportes/resgates manuais) e modo alocado
+  (progresso acompanha o saldo de uma conta vinculada, sem duplicar
+  dinheiro), marcação de reserva de emergência, cálculo do aporte mensal
+  necessário para bater a meta na data-alvo
+- **Patrimônio**: ativos e passivos com categorias, snapshot automático do
+  valor do ativo a cada atualização (`asset_value_history`), e patrimônio
+  líquido consolidado na view `net_worth_summary` (contas + ativos − passivos
+  − dívidas ativas, com trava contra dupla contagem de dívida vinculada a
+  passivo)
+- **Planejamento mensal**: renda prevista − orçamento − mínimos das dívidas −
+  poupança planejada = sobra livre, com alerta quando o plano compromete mais
+  que a renda
+- 91 testes automatizados (Vitest + Testing Library), incluindo cálculo de
+  fatura, geração de parcelas, projeção diária de saldo, parser/validação da
+  importação TXT, simulador de quitação, progresso de metas e status do
+  orçamento
 
 ### 🚧 Pendente — planejado para as próximas fases
 
@@ -264,11 +291,6 @@ algo que não faz.
 
 | Item | Fase planejada |
 |---|---|
-| Orçamento mensal | Fase 3 |
-| Dívidas, simulador bola de neve/avalanche, quitação antecipada | Fase 3 |
-| Metas (modo independente e alocado), reserva de emergência | Fase 3 |
-| Patrimônio (ativos/passivos) | Fase 3 |
-| Planejamento mensal | Fase 3 |
 | Diagnósticos automáticos e nota de saúde financeira | Fase 4 |
 | Relatórios avançados e exportação CSV | Fase 4 |
 | Exclusão segura de conta (requer Supabase Edge Function com `service_role`) | Fase 4 |
@@ -286,6 +308,17 @@ Simplificações conscientes desta entrega, documentadas para não parecerem bug
 - A projeção de saldo do Calendário não contabiliza transferências entre
   contas (o efeito de uma transferência entre contas próprias tende a zero) e
   só projeta a partir de hoje — não reconstrói saldo histórico.
+- O pagamento de dívida registrado em **Dívidas** abate o saldo devedor, mas
+  **não cria automaticamente uma despesa** em Movimentações (evita dupla
+  contagem quando a parcela da dívida já está lançada lá — ex.: veio de uma
+  importação ou recorrência). Se quiser refletir no caixa, lance a despesa
+  normalmente em Movimentações.
+- Aportes de metas independentes são registros próprios da meta — também não
+  movimentam contas (mesma lógica: o dinheiro pode já estar contabilizado).
+  No modo alocado isso não se aplica, pois o progresso lê o saldo real da
+  conta.
+- O simulador de quitação assume juros compostos mensais constantes e
+  orçamento fixo — é uma projeção educativa, não um cálculo contratual.
 
 > A exclusão de conta está com botão visível em **Configurações → Perfil**,
 > mas ao clicar o usuário vê uma explicação honesta do motivo (não pode ser
@@ -294,13 +327,13 @@ Simplificações conscientes desta entrega, documentadas para não parecerem bug
 
 ### Próximo passo sugerido
 
-Para continuar para a Fase 3 (Orçamento, Dívidas, Metas, Patrimônio,
-Planejamento mensal), a próxima migration deve ser criada como
-`supabase/migrations/0004_fase3_planejamento.sql`, adicionando: `budgets`,
-`debts`, `debt_payments`, `debt_settlements`, `goals`, `goal_contributions`,
-`assets`, `liabilities`, `asset_value_history`, `monthly_plans` — todas
-seguindo o mesmo padrão já estabelecido (RLS, triggers de dono, valores
-`numeric`, RPC transacional para a quitação antecipada de dívidas).
+Para fechar o projeto com a Fase 4 (Diagnósticos automáticos, nota de saúde
+financeira, Relatórios avançados com exportação CSV, exclusão segura de conta
+via Edge Function e login social), o caminho natural é: uma view/RPC de
+indicadores agregados por mês para alimentar os diagnósticos, a página de
+Relatórios lendo das views já existentes (`account_balances`,
+`budget_progress`, `net_worth_summary`, `credit_card_summary`) e uma Supabase
+Edge Function com `service_role` (fora do frontend) para a exclusão de conta.
 
 ---
 
@@ -472,7 +505,9 @@ testes e é o que garante R$ 1.234,56 / DD/MM/AAAA em todo o app.
 
 ## Checklist de segurança
 
-- [x] RLS ativo em todas as tabelas privadas: `profiles`, `user_settings`, `payment_methods`, `categories`, `subcategories`, `accounts`, `transactions`, `audit_logs`, `credit_cards`, `installment_groups`, `recurrence_rules`, `imports`, `import_rows`
+- [x] RLS ativo em todas as tabelas privadas: `profiles`, `user_settings`, `payment_methods`, `categories`, `subcategories`, `accounts`, `transactions`, `audit_logs`, `credit_cards`, `installment_groups`, `recurrence_rules`, `imports`, `import_rows`, `budgets`, `debts`,
+  `debt_payments`, `goals`, `goal_contributions`, `assets`, `liabilities`,
+  `asset_value_history`, `monthly_plans`
 - [x] Políticas usam `auth.uid()`, nunca confiam em parâmetros vindos do cliente
 - [x] Triggers de prevenção de vínculo cruzado entre usuários (contas, cartões, categorias, subcategorias, formas de pagamento, grupos de parcelas, regras de recorrência)
 - [x] `audit_logs` só pode ser lido pelo dono; escrita só via trigger `security definer`
@@ -486,7 +521,7 @@ testes e é o que garante R$ 1.234,56 / DD/MM/AAAA em todo o app.
 
 ## Checklist de testes
 
-Cobertos até esta fase (67 testes, `npm run test`):
+Cobertos até esta fase (91 testes, `npm run test`):
 
 - [x] Formatação monetária, numérica, percentual e de datas (padrão brasileiro)
 - [x] Cálculo do status "Atrasado" (computado, nunca altera pago/recebido/cancelado)
@@ -499,10 +534,13 @@ Cobertos até esta fase (67 testes, `npm run test`):
 - [x] Validação da importação: campos obrigatórios, tipos/status inválidos, conta e cartão mutuamente exclusivos
 - [x] Contas e cartões inexistentes identificados corretamente; categorias ausentes resolvidas conforme a opção escolhida
 - [x] Detecção de possível duplicidade na importação (mesma data + descrição + valor)
+- [x] Simulador de quitação: inviabilidade (orçamento < mínimos; juros ≥ orçamento), ordem bola de neve × avalanche, avalanche nunca paga mais juros, fechamento contábil (total pago = principal + juros), último mês não estoura o saldo
+- [x] Metas: progresso independente (aportes, resgate nunca negativo) × alocado (limitado ao alvo, conta negativa = 0), aporte mensal necessário até a data-alvo
+- [x] Orçamento: status ok/alerta (80%)/estourado, restante negativo, divisão por zero, normalização de mês e virada de ano
 
-Planejados para as próximas fases (dependem de funcionalidades ainda não
-implementadas): quitação antecipada, metas independentes/alocadas, orçamento,
-isolamento por usuário em teste de integração (requer projeto Supabase real).
+Planejados para a próxima fase (dependem de funcionalidades ainda não
+implementadas): diagnósticos/nota de saúde, exportação CSV, isolamento por
+usuário em teste de integração (requer projeto Supabase real).
 
 ## Limitações do PWA
 

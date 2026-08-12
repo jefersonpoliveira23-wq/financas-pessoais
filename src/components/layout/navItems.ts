@@ -9,6 +9,7 @@ import {
   Target,
   TrendingUp,
   Upload,
+  ClipboardList,
   FileBarChart2,
   Settings,
   type LucideIcon,
@@ -27,11 +28,12 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/movimentacoes', label: 'Movimentações', icon: ArrowLeftRight, available: true },
   { to: '/contas', label: 'Contas', icon: Wallet, available: true },
   { to: '/cartoes', label: 'Cartões', icon: CreditCard, available: true },
-  { to: '/orcamento', label: 'Orçamento', icon: PiggyBank, available: false },
+  { to: '/orcamento', label: 'Orçamento', icon: PiggyBank, available: true },
+  { to: '/planejamento', label: 'Planejamento mensal', icon: ClipboardList, available: true },
   { to: '/calendario', label: 'Calendário financeiro', icon: CalendarDays, available: true },
-  { to: '/dividas', label: 'Dívidas e parcelamentos', icon: Landmark, available: false },
-  { to: '/metas', label: 'Metas', icon: Target, available: false },
-  { to: '/patrimonio', label: 'Patrimônio', icon: TrendingUp, available: false },
+  { to: '/dividas', label: 'Dívidas e parcelamentos', icon: Landmark, available: true },
+  { to: '/metas', label: 'Metas', icon: Target, available: true },
+  { to: '/patrimonio', label: 'Patrimônio', icon: TrendingUp, available: true },
   { to: '/importar', label: 'Importar dados', icon: Upload, available: true },
   { to: '/relatorios', label: 'Relatórios', icon: FileBarChart2, available: false },
   { to: '/configuracoes', label: 'Configurações', icon: Settings, available: true },
@@ -42,5 +44,5 @@ export const MOBILE_PRIMARY_NAV: NavItem[] = [
   NAV_ITEMS[0], // Início
   NAV_ITEMS[1], // Movimentações
   NAV_ITEMS[2], // Contas
-  NAV_ITEMS[5], // Calendário
+  NAV_ITEMS[6], // Calendário
 ]
