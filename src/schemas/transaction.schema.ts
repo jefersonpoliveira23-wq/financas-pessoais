@@ -4,6 +4,7 @@ export const TRANSACTION_TYPES = [
   { value: 'receita', label: 'Receita' },
   { value: 'despesa', label: 'Despesa' },
   { value: 'transferencia', label: 'Transferência' },
+  { value: 'compra_cartao', label: 'Compra no cartão' },
 ] as const
 
 export const TRANSACTION_STATUSES = [
@@ -28,8 +29,9 @@ export const transactionSchema = z
     competenceDate: z.string().min(1, 'Informe a data de competência.'),
     dueDate: z.string().optional().or(z.literal('')),
     paidDate: z.string().optional().or(z.literal('')),
-    accountId: z.string().uuid('Selecione a conta.'),
+    accountId: z.string().optional().or(z.literal('')),
     destinationAccountId: z.string().uuid().optional().or(z.literal('')),
+    cardId: z.string().optional().or(z.literal('')),
     categoryId: z.string().uuid().optional().or(z.literal('')),
     subcategoryId: z.string().uuid().optional().or(z.literal('')),
     paymentMethodId: z.string().uuid().optional().or(z.literal('')),
@@ -38,6 +40,13 @@ export const transactionSchema = z
     isEssential: z.boolean().optional(),
     notes: z.string().max(500).optional().or(z.literal('')),
     tags: z.array(z.string()).optional(),
+    /** Total de parcelas (1 = movimentação avulsa, sem parcelamento). */
+    installmentTotal: z
+      .number({ message: 'Informe o número de parcelas.' })
+      .int()
+      .min(1, 'Mínimo de 1 parcela.')
+      .max(60, 'Máximo de 60 parcelas.')
+      .optional(),
   })
   .refine((data) => data.type !== 'transferencia' || !!data.destinationAccountId, {
     message: 'Selecione a conta de destino da transferência.',
@@ -46,6 +55,14 @@ export const transactionSchema = z
   .refine((data) => data.type !== 'transferencia' || data.destinationAccountId !== data.accountId, {
     message: 'A conta de destino deve ser diferente da conta de origem.',
     path: ['destinationAccountId'],
+  })
+  .refine((data) => data.type === 'compra_cartao' || !!data.accountId, {
+    message: 'Selecione a conta.',
+    path: ['accountId'],
+  })
+  .refine((data) => data.type !== 'compra_cartao' || !!data.cardId, {
+    message: 'Selecione o cartão.',
+    path: ['cardId'],
   })
 
 export type TransactionFormData = z.infer<typeof transactionSchema>

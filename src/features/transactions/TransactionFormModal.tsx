@@ -9,6 +9,7 @@ import {
   type TransactionFormData,
 } from '@/schemas/transaction.schema'
 import { useAccounts } from '@/hooks/useAccounts'
+import { useCreditCards } from '@/hooks/useCreditCards'
 import { useCategories, useSubcategories } from '@/hooks/useCategories'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -36,11 +37,13 @@ const emptyDefaults: TransactionFormData = {
   paidDate: '',
   accountId: '',
   destinationAccountId: '',
+  cardId: '',
   categoryId: '',
   subcategoryId: '',
   paymentMethodId: '',
   status: 'pendente',
   notes: '',
+  installmentTotal: 1,
 }
 
 export function TransactionFormModal({
@@ -51,6 +54,7 @@ export function TransactionFormModal({
   isSubmitting,
 }: TransactionFormModalProps) {
   const { data: accounts } = useAccounts()
+  const { data: cards } = useCreditCards()
   const { data: categories } = useCategories()
 
   const {
@@ -78,8 +82,9 @@ export function TransactionFormModal({
             competenceDate: transaction.competence_date,
             dueDate: transaction.due_date ?? '',
             paidDate: transaction.paid_date ?? '',
-            accountId: transaction.account_id,
+            accountId: transaction.account_id ?? '',
             destinationAccountId: transaction.destination_account_id ?? '',
+            cardId: transaction.card_id ?? '',
             categoryId: transaction.category_id ?? '',
             subcategoryId: transaction.subcategory_id ?? '',
             paymentMethodId: transaction.payment_method_id ?? '',
@@ -87,6 +92,7 @@ export function TransactionFormModal({
             fixedVariable: transaction.fixed_variable ?? undefined,
             isEssential: transaction.is_essential ?? undefined,
             notes: transaction.notes ?? '',
+            installmentTotal: 1,
           }
         : emptyDefaults,
     )
@@ -95,6 +101,9 @@ export function TransactionFormModal({
   if (!open) return null
 
   const activeAccounts = (accounts ?? []).filter((a) => !a.is_archived)
+  const activeCards = (cards ?? []).filter((c) => !c.is_archived)
+  const isCardPurchase = watchedType === 'compra_cartao'
+  const supportsInstallments = !transaction && (watchedType === 'despesa' || watchedType === 'compra_cartao')
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-(--color-ink-900)/40 p-4">
@@ -116,7 +125,7 @@ export function TransactionFormModal({
           noValidate
         >
           <Select label="Tipo" error={errors.type?.message} {...register('type')}>
-            {TRANSACTION_TYPES.map((t) => (
+            {TRANSACTION_TYPES.filter((t) => t.value !== 'compra_cartao' || activeCards.length > 0).map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
               </option>
@@ -130,7 +139,7 @@ export function TransactionFormModal({
             name="amount"
             render={({ field }) => (
               <Input
-                label="Valor"
+                label={supportsInstallments ? 'Valor total' : 'Valor'}
                 type="number"
                 step="0.01"
                 min="0"
@@ -161,18 +170,29 @@ export function TransactionFormModal({
             <Input label="Pagamento/recebimento" type="date" {...register('paidDate')} />
           </div>
 
-          <Select
-            label={watchedType === 'transferencia' ? 'Conta de origem' : 'Conta'}
-            error={errors.accountId?.message}
-            {...register('accountId')}
-          >
-            <option value="">Selecione…</option>
-            {activeAccounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </Select>
+          {isCardPurchase ? (
+            <Select label="Cartão" error={errors.cardId?.message} {...register('cardId')}>
+              <option value="">Selecione…</option>
+              {activeCards.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <Select
+              label={watchedType === 'transferencia' ? 'Conta de origem' : 'Conta'}
+              error={errors.accountId?.message}
+              {...register('accountId')}
+            >
+              <option value="">Selecione…</option>
+              {activeAccounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </Select>
+          )}
 
           {watchedType === 'transferencia' && (
             <Select
@@ -194,7 +214,7 @@ export function TransactionFormModal({
               <Select label="Categoria" {...register('categoryId')}>
                 <option value="">Sem categoria</option>
                 {(categories ?? [])
-                  .filter((c) => c.type === 'ambos' || c.type === watchedType)
+                  .filter((c) => c.type === 'ambos' || c.type === (isCardPurchase ? 'despesa' : watchedType))
                   .map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -215,13 +235,15 @@ export function TransactionFormModal({
             </>
           )}
 
-          <Select label="Status" error={errors.status?.message} {...register('status')}>
-            {TRANSACTION_STATUSES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </Select>
+          {!isCardPurchase && (
+            <Select label="Status" error={errors.status?.message} {...register('status')}>
+              {TRANSACTION_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </Select>
+          )}
 
           {watchedType !== 'transferencia' && (
             <div className="grid grid-cols-2 gap-4">
@@ -242,6 +264,25 @@ export function TransactionFormModal({
             </div>
           )}
 
+          {supportsInstallments && (
+            <Controller
+              control={control}
+              name="installmentTotal"
+              render={({ field }) => (
+                <Input
+                  label="Total de parcelas"
+                  type="number"
+                  min={1}
+                  max={60}
+                  hint="1 = movimentação avulsa, sem parcelamento."
+                  error={errors.installmentTotal?.message}
+                  value={field.value ?? 1}
+                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                />
+              )}
+            />
+          )}
+
           <label className="flex flex-col gap-1.5 text-sm font-medium text-(--color-ink-900)">
             Observações
             <textarea
@@ -255,7 +296,7 @@ export function TransactionFormModal({
               Cancelar
             </Button>
             <Button type="submit" isLoading={isSubmitting}>
-              {transaction ? 'Salvar alterações' : 'Criar movimentação'}
+              {transaction ? 'Salvar alterações' : 'Continuar'}
             </Button>
           </div>
         </form>

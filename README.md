@@ -5,9 +5,9 @@ categorias e um dashboard que mostra sua situação financeira real — com
 autenticação, banco de dados relacional protegido por Row Level Security e
 100% em português do Brasil.
 
-> **Status do projeto:** Fase 1 de 4 concluída (Fundação). Veja a seção
-> [Status de implementação](#status-de-implementação) para o que já funciona
-> e o que está planejado para as próximas fases.
+> **Status do projeto:** Fases 1 e 2 de 4 concluídas (Fundação + Operações
+> financeiras). Veja a seção [Status de implementação](#status-de-implementação)
+> para o que já funciona e o que está planejado para as próximas fases.
 
 ---
 
@@ -90,10 +90,13 @@ aplicá-las de duas formas:
 ### Opção A — Colar no SQL Editor (mais simples, sem instalar nada)
 
 1. No painel do Supabase, abra **SQL Editor**.
-2. Abra o arquivo `supabase/migrations/0001_fase1_fundacao.sql` deste
-   repositório, copie todo o conteúdo e cole no editor.
-3. Execute (▶ Run). A criação das tabelas é idempotente
-   (`create table if not exists`), mas rode apenas uma vez em cada ambiente.
+2. Abra, **nesta ordem**, cada arquivo em `supabase/migrations/` deste
+   repositório (`0001_fase1_fundacao.sql`, `0002_fase2_operacoes.sql`,
+   `0003_fase2_importacao.sql`), copie o conteúdo e execute (▶ Run) um de
+   cada vez — a ordem importa, pois as migrations seguintes dependem das
+   tabelas criadas nas anteriores.
+3. A criação das tabelas é idempotente (`create table if not exists`), mas
+   rode cada migration apenas uma vez em cada ambiente.
 
 ### Opção B — Supabase CLI (recomendado para times/CI)
 
@@ -204,37 +207,53 @@ where schemaname = 'public';
 ## Status de implementação
 
 O projeto foi combinado para ser construído em 4 fases. Este entregável
-cobre a **Fase 1 — Fundação** por completo e de forma real (não há dados
-fixos nem telas decorativas).
+cobre a **Fase 1 — Fundação** e a **Fase 2 — Operações financeiras** por
+completo e de forma real (não há dados fixos nem telas decorativas).
 
-### ✅ Funcional nesta entrega (Fase 1)
+### ✅ Funcional nesta entrega (Fases 1 e 2)
 
+**Fundação (Fase 1)**
 - Cadastro, login, logout, recuperação de senha, alteração de senha, perfil
 - Rotas protegidas (usuário não autenticado nunca acessa telas internas)
 - Banco de dados com RLS completo, triggers de auditoria e de prevenção de
   vínculo cruzado entre usuários
 - CRUD de contas financeiras (com saldo calculado via view, arquivamento com
   confirmação — nunca exclusão física, para preservar histórico)
-- CRUD de categorias e subcategorias
-- CRUD de formas de pagamento
-- CRUD de movimentações (receita, despesa, transferência), com:
-  - Filtros por tipo, status e conta
-  - Cálculo de status "Atrasado" (computado, sem job agendado)
-  - Ação rápida de "marcar como pago/recebido"
-  - Exclusão com modal de confirmação
-  - Regra de transferência sem dupla contagem (não conta como receita/despesa)
-- Dashboard básico: saldo disponível, receitas recebidas, despesas pagas,
-  resultado realizado, gráfico receitas × despesas, lista de contas e últimas
-  movimentações — com filtro de mês
-- Preferências do usuário (tema, reconhecimento de compras no cartão, separador decimal)
-- Design system completo (paleta azul-petróleo, componentes acessíveis,
-  estados vazios, skeletons, toasts, modais de confirmação)
-- Layout responsivo: menu lateral recolhível no desktop, navegação inferior +
-  atalho de lançamento rápido no celular
-- PWA instalável com tela offline informativa (app shell), atualização
-  controlada do Service Worker
-- 23 testes automatizados (Vitest + Testing Library) cobrindo formatação,
-  cálculo de status e regras de transferência
+- CRUD de categorias, subcategorias e formas de pagamento
+- Dashboard básico, preferências do usuário, design system, layout responsivo,
+  PWA instalável
+
+**Operações financeiras (Fase 2)**
+- **Cartões de crédito**: CRUD, cálculo de fatura pela data de fechamento
+  (com tratamento de meses com menos dias e virada de ano), limite
+  usado/disponível calculado no banco (view `credit_card_summary`), pagamento
+  de fatura integral ou parcial sem duplicar despesa
+- **Movimentações** agora também suportam compra no cartão (`compra_cartao`)
+- **Parcelamento automático**: ao cadastrar uma movimentação com mais de 1
+  parcela, o sistema mostra a prévia das parcelas restantes (valores iguais
+  ou personalizados, com a última parcela sempre recalculada para a soma
+  bater com o total) antes de confirmar; tudo é criado atomicamente via RPC
+  (`create_installment_group`). Editar/excluir permite escolher entre
+  "somente esta parcela", "esta e as próximas" ou "todas as parcelas"
+- **Recorrências**: criação de despesas/receitas recorrentes (semanal,
+  quinzenal, mensal, bimestral, trimestral, semestral, anual ou intervalo
+  personalizado), com pausar/retomar/encerrar. A materialização das
+  ocorrências é sob demanda e em janela curta (hoje + 3 meses) — nunca gera
+  registros infinitos
+- **Calendário financeiro**: grade mensal com os lançamentos de cada dia,
+  linha de saldo projetado dia a dia, identificação automática do primeiro
+  dia com saldo negativo, do menor saldo projetado do mês, do valor livre até
+  a próxima receita e do dia com maior concentração de vencimentos
+- **Importação em massa por TXT**: modelo para download, upload por
+  arrastar-e-soltar, prévia linha a linha com seleção individual, validação
+  completa (datas, valores, tipos, status), identificação de contas/cartões
+  inexistentes (nunca criados automaticamente), opção de criar categorias
+  ausentes, detecção de possível duplicidade, hash do arquivo com aviso de
+  reimportação, relatório de erros para download, histórico de importações,
+  confirmação transacional via RPC (`confirm_import`)
+- 67 testes automatizados (Vitest + Testing Library), incluindo cálculo de
+  fatura, geração de parcelas, projeção diária de saldo e parser/validação/
+  detecção de duplicidade da importação TXT
 
 ### 🚧 Pendente — planejado para as próximas fases
 
@@ -245,11 +264,6 @@ algo que não faz.
 
 | Item | Fase planejada |
 |---|---|
-| Cartões de crédito, faturas, limite | Fase 2 |
-| Parcelamento automático (`installment_groups`) | Fase 2 |
-| Recorrências (`recurrence_rules`) | Fase 2 |
-| Calendário financeiro | Fase 2 |
-| Importação em massa por TXT | Fase 2 |
 | Orçamento mensal | Fase 3 |
 | Dívidas, simulador bola de neve/avalanche, quitação antecipada | Fase 3 |
 | Metas (modo independente e alocado), reserva de emergência | Fase 3 |
@@ -260,6 +274,19 @@ algo que não faz.
 | Exclusão segura de conta (requer Supabase Edge Function com `service_role`) | Fase 4 |
 | Login social | Fase 4 |
 
+Simplificações conscientes desta entrega, documentadas para não parecerem bugs:
+- A importação TXT cria a movimentação com o `PARCELA_ATUAL`/`TOTAL_PARCELAS`
+  informados apenas como referência — ela não aciona automaticamente a
+  geração das parcelas restantes (isso continua disponível manualmente em
+  Movimentações). Também não cria recorrências automaticamente a partir da
+  coluna `RECORRENTE`.
+- A edição de parcelas com escopo "esta e as próximas" / "todas" está
+  disponível para **exclusão**; a edição de campos (descrição, categoria...)
+  com esses mesmos escopos ainda é feita apenas parcela a parcela.
+- A projeção de saldo do Calendário não contabiliza transferências entre
+  contas (o efeito de uma transferência entre contas próprias tende a zero) e
+  só projeta a partir de hoje — não reconstrói saldo histórico.
+
 > A exclusão de conta está com botão visível em **Configurações → Perfil**,
 > mas ao clicar o usuário vê uma explicação honesta do motivo (não pode ser
 > feita com segurança apenas no frontend) em vez de uma ação que falha
@@ -267,19 +294,19 @@ algo que não faz.
 
 ### Próximo passo sugerido
 
-Para continuar para a Fase 2 (Cartões, parcelamento, recorrência, calendário,
-importação), a próxima migration deve ser criada como
-`supabase/migrations/0002_fase2_operacoes.sql`, adicionando (via `ALTER TABLE`
-nas tabelas existentes sempre que possível, para não quebrar dados já
-gravados): `credit_cards`, `installment_groups`, `recurrence_rules`, e os
-novos valores de `type` em `transactions` (`compra_cartao`,
-`pagamento_fatura`, etc.).
+Para continuar para a Fase 3 (Orçamento, Dívidas, Metas, Patrimônio,
+Planejamento mensal), a próxima migration deve ser criada como
+`supabase/migrations/0004_fase3_planejamento.sql`, adicionando: `budgets`,
+`debts`, `debt_payments`, `debt_settlements`, `goals`, `goal_contributions`,
+`assets`, `liabilities`, `asset_value_history`, `monthly_plans` — todas
+seguindo o mesmo padrão já estabelecido (RLS, triggers de dono, valores
+`numeric`, RPC transacional para a quitação antecipada de dívidas).
 
 ---
 
 ## Arquitetura e modelo de dados
 
-### Diagrama relacional (Fase 1)
+### Diagrama relacional (Fase 1 + Fase 2)
 
 ```
 auth.users (Supabase Auth)
@@ -290,15 +317,40 @@ auth.users (Supabase Auth)
 profiles.user
    │ 1:N
    ├── accounts ──────────────┐
+   ├── credit_cards           │
    ├── categories ── 1:N ── subcategories
    ├── payment_methods        │
-   └── transactions ──────────┤  (account_id, destination_account_id → accounts)
+   ├── installment_groups     │  (agrupa parcelas)
+   ├── recurrence_rules       │  (gera ocorrências sob demanda)
+   ├── imports ── 1:N ── import_rows
+   └── transactions ──────────┤  (account_id, destination_account_id → accounts; card_id → credit_cards)
+                               │  (installment_group_id → installment_groups)
+                               │  (recurrence_rule_id → recurrence_rules)
                                │  (category_id → categories, subcategory_id → subcategories)
                                │  (payment_method_id → payment_methods)
         transactions ── trigger AFTER ── audit_logs (somente leitura para o usuário)
 
 accounts + transactions ──► view account_balances (saldo calculado, fonte única)
+credit_cards + transactions ──► view credit_card_summary (limite usado/disponível)
 ```
+
+### Cartões: compra vs. pagamento de fatura, sem dupla contagem
+
+Uma `compra_cartao` nunca toca o saldo de nenhuma conta — ela só afeta o
+`used_limit` calculado pela view `credit_card_summary`. Quando a fatura é
+paga (`pagamento_fatura`), aí sim o saldo da conta pagadora é reduzido —
+exatamente como uma despesa comum — mas o `used_limit` do cartão também
+diminui na mesma proporção. Resultado: o valor da compra nunca é contado
+duas vezes (uma no limite do cartão e outra como despesa da conta).
+
+### Parcelamento e recorrência não são a mesma coisa
+
+- **Parcelamento** (`installment_groups`) tem uma quantidade definida de
+  parcelas, criadas todas de uma vez (via RPC transacional) no momento do
+  cadastro.
+- **Recorrência** (`recurrence_rules`) descreve uma regra (frequência,
+  início, fim opcional) e suas ocorrências são geradas aos poucos, sob
+  demanda, numa janela curta — nunca de uma vez só até o infinito.
 
 ### Por que uma `view` para saldo, em vez de calcular no frontend?
 
@@ -383,18 +435,27 @@ financas-pessoais/
 │   │   ├── auth/
 │   │   ├── dashboard/
 │   │   ├── accounts/
-│   │   ├── transactions/
+│   │   ├── cards/                 # cartões, faturas, pagamento
+│   │   ├── transactions/          # movimentações + parcelamento
+│   │   ├── recurrences/           # recorrências (aba dentro de Movimentações)
+│   │   ├── calendar/              # calendário financeiro + projeção
+│   │   ├── import/                # importação em massa por TXT
 │   │   └── settings/
-│   ├── hooks/                   # useAuth, useAccounts, useTransactions...
+│   ├── hooks/                   # useAuth, useAccounts, useCreditCards, useInstallments,
+│   │                             # useRecurrences, useImports, useTransactions...
 │   ├── lib/                     # supabase.ts, registerServiceWorker.ts
 │   ├── routes/                  # router.tsx, ProtectedRoute.tsx
 │   ├── schemas/                 # validação Zod (auth, account, transaction)
 │   ├── types/                   # database.types.ts
-│   ├── utils/                   # format.ts (formatação centralizada!), transactionStatus.ts
+│   ├── utils/                   # format.ts (formatação centralizada!), transactionStatus.ts,
+│   │                             # creditCard.ts, installments.ts, calendarProjection.ts,
+│   │                             # txtImportParser.ts
 │   └── tests/                   # setup.ts + *.test.ts
 ├── supabase/
 │   ├── migrations/
-│   │   └── 0001_fase1_fundacao.sql
+│   │   ├── 0001_fase1_fundacao.sql
+│   │   ├── 0002_fase2_operacoes.sql      # cartões, parcelamento, recorrência
+│   │   └── 0003_fase2_importacao.sql     # imports, import_rows
 │   └── seed.sql                 # dados fictícios opcionais
 ├── .env.example
 ├── eslint.config.js
@@ -411,33 +472,37 @@ testes e é o que garante R$ 1.234,56 / DD/MM/AAAA em todo o app.
 
 ## Checklist de segurança
 
-- [x] RLS ativo em `profiles`, `user_settings`, `payment_methods`, `categories`, `subcategories`, `accounts`, `transactions`, `audit_logs`
+- [x] RLS ativo em todas as tabelas privadas: `profiles`, `user_settings`, `payment_methods`, `categories`, `subcategories`, `accounts`, `transactions`, `audit_logs`, `credit_cards`, `installment_groups`, `recurrence_rules`, `imports`, `import_rows`
 - [x] Políticas usam `auth.uid()`, nunca confiam em parâmetros vindos do cliente
-- [x] Triggers de prevenção de vínculo cruzado entre usuários (`account_id`, `category_id`, `subcategory_id`, `payment_method_id`)
+- [x] Triggers de prevenção de vínculo cruzado entre usuários (contas, cartões, categorias, subcategorias, formas de pagamento, grupos de parcelas, regras de recorrência)
 - [x] `audit_logs` só pode ser lido pelo dono; escrita só via trigger `security definer`
+- [x] RPCs (`create_installment_group`, `materialize_recurrence_rule`, `confirm_import`) rodam como `security invoker` — RLS e triggers de dono continuam valendo, sem elevar privilégio
+- [x] Importação TXT: nunca executa conteúdo do arquivo, valida extensão além do nome, limita tamanho (2 MB) e linhas (2000), nunca cria contas/cartões automaticamente
 - [x] Frontend usa exclusivamente a chave `anon/public`
 - [x] `.env` no `.gitignore`, `.env.example` sem valores reais
-- [x] Constraints no banco (não só na interface): `amount > 0`, transferência exige conta de destino, conta de destino ≠ conta de origem
+- [x] Constraints no banco (não só na interface): valores monetários `> 0`, combinação válida de conta/cartão por tipo de movimentação, transferência exige conta de destino diferente da origem
 - [x] Exclusão de conta não implementada de forma insegura — está pendente e documentada, em vez de fingir funcionar
 - [ ] *(ação sua, antes de publicar)* Confirmar que nenhum segredo real está no histórico do Git
 
 ## Checklist de testes
 
-Cobertos nesta fase (23 testes, `npm run test`):
+Cobertos até esta fase (67 testes, `npm run test`):
 
-- [x] Formatação monetária (positivo, zero, negativo, valor inválido)
-- [x] Formatação de número e percentual (padrão brasileiro, vírgula)
-- [x] Conversão de entrada do usuário (vírgula ou ponto) para número
-- [x] Formatação de datas ISO → DD/MM/AAAA
-- [x] Cálculo do status "Atrasado" (pendente/previsto vencidos, pago/recebido/cancelado nunca mudam)
-- [x] Transferência exige conta de destino
-- [x] Transferência não pode ter a mesma conta de origem e destino
-- [x] Valor de movimentação deve ser maior que zero
+- [x] Formatação monetária, numérica, percentual e de datas (padrão brasileiro)
+- [x] Cálculo do status "Atrasado" (computado, nunca altera pago/recebido/cancelado)
+- [x] Regras de transferência (exige destino, destino ≠ origem, sem dupla contagem)
+- [x] Compra no cartão exige cartão selecionado
+- [x] Definição da fatura pela data de fechamento, incluindo meses com menos dias e virada de ano/bissexto
+- [x] Geração de parcelas: quantidade correta, mesmo dia do mês, ajuste em meses menores, soma sempre bate com o total (mesmo com dízima)
+- [x] Projeção diária de saldo: aplicação no dia certo, itens atrasados agrupados em "hoje", identificação do primeiro dia negativo e do menor saldo do período
+- [x] Parser do TXT: cabeçalho, datas, valores (vírgula/ponto), linhas em branco, BOM
+- [x] Validação da importação: campos obrigatórios, tipos/status inválidos, conta e cartão mutuamente exclusivos
+- [x] Contas e cartões inexistentes identificados corretamente; categorias ausentes resolvidas conforme a opção escolhida
+- [x] Detecção de possível duplicidade na importação (mesma data + descrição + valor)
 
 Planejados para as próximas fases (dependem de funcionalidades ainda não
-implementadas): geração de parcelas, meses com menos dias, quitação
-antecipada, metas independentes/alocadas, orçamento, parser do TXT,
-detecção de duplicidade na importação.
+implementadas): quitação antecipada, metas independentes/alocadas, orçamento,
+isolamento por usuário em teste de integração (requer projeto Supabase real).
 
 ## Limitações do PWA
 

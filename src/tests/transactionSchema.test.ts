@@ -47,3 +47,20 @@ describe('transactionSchema — regra de dupla contagem em transferências', () 
     expect(result.success).toBe(false)
   })
 })
+
+describe('transactionSchema — compra no cartão', () => {
+  it('exige cartão quando o tipo é compra no cartão', () => {
+    const result = transactionSchema.safeParse({ ...base, type: 'compra_cartao', accountId: '', cardId: '' })
+    expect(result.success).toBe(false)
+  })
+
+  it('não exige conta quando o tipo é compra no cartão', () => {
+    const result = transactionSchema.safeParse({
+      ...base,
+      type: 'compra_cartao',
+      accountId: '',
+      cardId: '33333333-3333-3333-3333-333333333333',
+    })
+    expect(result.success).toBe(true)
+  })
+})

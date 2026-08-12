@@ -7,6 +7,9 @@ import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { AccountsPage } from '@/features/accounts/AccountsPage'
+import { CardsPage } from '@/features/cards/CardsPage'
+import { CalendarPage } from '@/features/calendar/CalendarPage'
+import { ImportPage } from '@/features/import/ImportPage'
 import { TransactionsPage } from '@/features/transactions/TransactionsPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { ComingSoon } from '@/components/layout/ComingSoon'
@@ -38,6 +41,9 @@ export const router = createBrowserRouter([
           { path: '/inicio', element: <DashboardPage /> },
           { path: '/movimentacoes', element: <TransactionsPage /> },
           { path: '/contas', element: <AccountsPage /> },
+          { path: '/cartoes', element: <CardsPage /> },
+          { path: '/calendario', element: <CalendarPage /> },
+          { path: '/importar', element: <ImportPage /> },
           { path: '/configuracoes', element: <SettingsPage /> },
           ...comingSoonRoutes,
         ],
