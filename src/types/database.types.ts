@@ -749,6 +749,15 @@ export interface Database {
         }
         Relationships: []
       }
+      monthly_cashflow: {
+        Row: {
+          user_id: string
+          month: string
+          income: number
+          expense: number
+        }
+        Relationships: []
+      }
     }
     Functions: {
       create_installment_group: {

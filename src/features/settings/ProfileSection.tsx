@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -15,11 +16,13 @@ const nameSchema = z.object({ fullName: z.string().trim().min(2, 'Informe seu no
 type NameFormValues = z.infer<typeof nameSchema>
 
 export function ProfileSection() {
-  const { user, updatePassword } = useAuth()
+  const { user, updatePassword, deleteAccount } = useAuth()
+  const navigate = useNavigate()
   const { data: profile } = useProfile()
   const updateProfile = useUpdateProfile()
   const { showToast } = useToast()
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const {
     register: registerName,
@@ -105,10 +108,10 @@ export function ProfileSection() {
       <Card>
         <CardHeader title="Excluir conta" subtitle="Ação permanente e irreversível." />
         <p className="mb-4 text-sm text-(--color-ink-600)">
-          A exclusão definitiva da conta exige uma rotina de backend com privilégios elevados (Supabase Edge Function
-          usando a chave <code className="rounded bg-(--color-surface-alt) px-1">service_role</code>, que nunca deve
-          rodar no navegador). Essa função ainda não foi implementada — está marcada como pendência para uma próxima
-          fase do projeto e documentada no README.
+          Todos os seus dados — contas, movimentações, cartões, dívidas, metas, patrimônio e orçamentos — serão apagados
+          definitivamente. Isso não pode ser desfeito. A exclusão roda em uma Supabase Edge Function com a chave{' '}
+          <code className="rounded bg-(--color-surface-alt) px-1">service_role</code> (nunca exposta no navegador), que
+          remove apenas a conta autenticada fazendo a chamada.
         </p>
         <Button variant="danger" onClick={() => setDeleteConfirmOpen(true)}>
           Excluir minha conta
@@ -117,12 +120,23 @@ export function ProfileSection() {
 
       <ConfirmDialog
         open={deleteConfirmOpen}
-        title="Funcionalidade pendente"
-        description="A exclusão segura de conta ainda não está implementada nesta fase. Veja a seção 'Pendências' do README para os próximos passos."
-        confirmLabel="Entendi"
-        isDangerous={false}
-        onConfirm={() => setDeleteConfirmOpen(false)}
+        title="Excluir conta definitivamente?"
+        description="Essa ação apaga todos os seus dados financeiros e não pode ser desfeita. Tem certeza que deseja continuar?"
+        confirmLabel="Excluir minha conta"
+        isDangerous
+        isLoading={isDeleting}
         onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={async () => {
+          setIsDeleting(true)
+          const { error } = await deleteAccount()
+          setIsDeleting(false)
+          if (error) {
+            showToast('error', error)
+            return
+          }
+          setDeleteConfirmOpen(false)
+          navigate('/entrar', { replace: true })
+        }}
       />
     </div>
   )

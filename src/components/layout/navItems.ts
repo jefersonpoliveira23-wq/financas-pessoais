@@ -12,6 +12,7 @@ import {
   ClipboardList,
   FileBarChart2,
   Settings,
+  HeartPulse,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -35,7 +36,8 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/metas', label: 'Metas', icon: Target, available: true },
   { to: '/patrimonio', label: 'Patrimônio', icon: TrendingUp, available: true },
   { to: '/importar', label: 'Importar dados', icon: Upload, available: true },
-  { to: '/relatorios', label: 'Relatórios', icon: FileBarChart2, available: false },
+  { to: '/relatorios', label: 'Relatórios', icon: FileBarChart2, available: true },
+  { to: '/diagnosticos', label: 'Diagnósticos', icon: HeartPulse, available: true },
   { to: '/configuracoes', label: 'Configurações', icon: Settings, available: true },
 ]
 

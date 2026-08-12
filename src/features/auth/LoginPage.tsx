@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { signInSchema, type SignInFormData } from '@/schemas/auth.schema'
 import { useAuth } from '@/hooks/useAuth'
 import { AuthLayout } from '@/features/auth/AuthLayout'
+import { SocialLoginButtons } from '@/features/auth/SocialLoginButtons'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 
@@ -52,6 +53,8 @@ export function LoginPage() {
         <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
           Entrar
         </Button>
+
+        <SocialLoginButtons />
 
         <div className="flex items-center justify-between text-sm">
           <Link to="/esqueci-senha" className="text-(--color-navy-700) hover:underline">

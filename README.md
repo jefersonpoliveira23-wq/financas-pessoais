@@ -5,9 +5,9 @@ categorias e um dashboard que mostra sua situação financeira real — com
 autenticação, banco de dados relacional protegido por Row Level Security e
 100% em português do Brasil.
 
-> **Status do projeto:** Fases 1, 2 e 3 de 4 concluídas (Fundação + Operações
-> financeiras). Veja a seção [Status de implementação](#status-de-implementação)
-> para o que já funciona e o que está planejado para as próximas fases.
+> **Status do projeto:** Fases 1, 2, 3 e 4 de 4 concluídas — projeto completo.
+> Veja a seção [Status de implementação](#status-de-implementação) para o
+> detalhamento de cada fase e as simplificações conscientes documentadas.
 
 ---
 
@@ -92,8 +92,8 @@ aplicá-las de duas formas:
 1. No painel do Supabase, abra **SQL Editor**.
 2. Abra, **nesta ordem**, cada arquivo em `supabase/migrations/` deste
    repositório (`0001_fase1_fundacao.sql`, `0002_fase2_operacoes.sql`,
-   `0003_fase2_importacao.sql`, `0004_fase3_planejamento.sql`), copie o
-   conteúdo e execute (▶ Run) um de
+   `0003_fase2_importacao.sql`, `0004_fase3_planejamento.sql`,
+   `0005_fase4_diagnosticos.sql`), copie o conteúdo e execute (▶ Run) um de
    cada vez — a ordem importa, pois as migrations seguintes dependem das
    tabelas criadas nas anteriores.
 3. A criação das tabelas é idempotente (`create table if not exists`), mas
@@ -114,6 +114,40 @@ Depois de criar sua conta pelo próprio app, você pode popular dados de teste
 com `supabase/seed.sql`. O script tem instruções no topo do arquivo (é
 preciso colar o UUID do seu usuário de teste antes de rodar) — **nenhum dado
 real deve ser usado aqui**.
+
+### Deploy da Edge Function de exclusão de conta (Fase 4)
+
+A exclusão definitiva de conta (Configurações → Perfil) depende de uma
+Supabase Edge Function, porque apagar um usuário exige a chave
+`service_role` — que nunca deve rodar no navegador. Sem esse deploy, o botão
+"Excluir minha conta" mostra um erro amigável ao usuário, mas o resto do app
+funciona normalmente.
+
+```bash
+supabase functions deploy delete-account --project-ref SEU_PROJECT_REF
+```
+
+Não é preciso cadastrar nenhuma variável de ambiente manualmente: o Supabase
+já injeta `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY`
+automaticamente dentro de toda Edge Function do projeto.
+
+### Login social — Google e GitHub (opcional, Fase 4)
+
+Os botões "Google" e "GitHub" nas telas de entrar/criar conta usam
+`supabase.auth.signInWithOAuth` — funcionam assim que você habilita o
+provedor correspondente:
+
+1. No painel do Supabase, vá em **Authentication → Providers** e habilite
+   **Google** e/ou **GitHub**, seguindo o passo a passo de cada um (criar as
+   credenciais OAuth no Google Cloud Console / GitHub Developer Settings e
+   colar o Client ID/Secret).
+2. Confirme que a mesma URL usada em **Authentication → URL Configuration**
+   (seção 4 deste README) está correta — é para lá que o provedor
+   redireciona depois do login.
+
+Se nenhum provedor for habilitado, os botões continuam visíveis mas o
+Supabase retorna um erro claro ("provider is not enabled") — o app não
+quebra, só orienta o usuário a tentar e-mail/senha.
 
 ## 6. Execução local
 
@@ -207,12 +241,12 @@ where schemaname = 'public';
 
 ## Status de implementação
 
-O projeto foi combinado para ser construído em 4 fases. Este entregável
-cobre a **Fase 1 — Fundação**, a **Fase 2 — Operações financeiras** e a
-**Fase 3 — Planejamento** por completo e de forma real (não há dados fixos
-nem telas decorativas).
+O projeto foi combinado para ser construído em 4 fases — **todas concluídas
+nesta entrega**, de forma real (não há dados fixos nem telas decorativas):
+**Fase 1 — Fundação**, **Fase 2 — Operações financeiras**, **Fase 3 —
+Planejamento** e **Fase 4 — Diagnósticos e Relatórios**.
 
-### ✅ Funcional nesta entrega (Fases 1, 2 e 3)
+### ✅ Funcional nesta entrega (Fases 1 a 4 — projeto completo)
 
 **Fundação (Fase 1)**
 - Cadastro, login, logout, recuperação de senha, alteração de senha, perfil
@@ -282,19 +316,39 @@ nem telas decorativas).
   importação TXT, simulador de quitação, progresso de metas e status do
   orçamento
 
-### 🚧 Pendente — planejado para as próximas fases
+**Diagnósticos e Relatórios (Fase 4)**
 
-Estas telas já aparecem na navegação (para refletir a estrutura de
-informação completa do produto), mas mostram um aviso claro de "ainda não
-implementado" em vez de simular funcionalidade — nenhum botão finge fazer
-algo que não faz.
-
-| Item | Fase planejada |
-|---|---|
-| Diagnósticos automáticos e nota de saúde financeira | Fase 4 |
-| Relatórios avançados e exportação CSV | Fase 4 |
-| Exclusão segura de conta (requer Supabase Edge Function com `service_role`) | Fase 4 |
-| Login social | Fase 4 |
+- **Nota de saúde financeira** (0 a 100): combina quatro sinais — taxa de
+  poupança (peso 40), cobertura da reserva de emergência em meses de despesa
+  (peso 25), comprometimento mensal com dívidas (peso 20) e aderência ao
+  orçamento do mês (peso 15). Sinais sem dado cadastrado (ex.: sem dívidas)
+  não penalizam a nota — o peso é redistribuído entre os sinais disponíveis.
+  Toda a lógica vive em `src/utils/healthScore.ts`, testável e sem tocar no
+  banco
+- **Alertas automáticos**: gastos acima da renda, poupança abaixo de 10%,
+  reserva cobrindo menos de 3 meses, dívidas comprometendo mais de 30% da
+  renda, categorias de orçamento estouradas — cada um com o texto explicando
+  o motivo
+- **Relatórios**: gráfico de receitas × despesas realizadas mês a mês (3/6/12
+  meses, view `monthly_cashflow`) e maiores categorias de despesa no período
+  (despesas + compras no cartão, nunca transferências)
+- **Exportação CSV** das movimentações do período selecionado — separador
+  vírgula, decimal brasileiro, BOM UTF-8 (abre corretamente no Excel), campos
+  com vírgula/aspas/quebra de linha corretamente escapados (RFC 4180)
+- **Exclusão segura de conta**: Supabase Edge Function (`supabase/functions/delete-account`)
+  usando `service_role` — roda no servidor, nunca no navegador; o id do
+  usuário vem do token JWT validado na função (nunca do corpo da requisição),
+  então um usuário só pode excluir a própria conta. Todas as tabelas
+  referenciam `auth.users` com `on delete cascade`, então apagar o usuário já
+  remove todos os dados financeiros associados, sem registros órfãos
+- **Login social**: botões de Google e GitHub nas telas de entrar/criar conta
+  via `supabase.auth.signInWithOAuth` — funcionam assim que os provedores
+  são habilitados no painel (seção 5 deste README); sem habilitar, o app
+  continua funcionando normalmente com e-mail/senha
+- 108 testes automatizados (Vitest + Testing Library) — 17 novos nesta fase:
+  10 cobrindo a nota de saúde financeira (cada sinal isolado, pesos
+  redistribuídos, alertas) e 7 cobrindo a exportação CSV (escapes RFC 4180,
+  formatação decimal brasileira)
 
 Simplificações conscientes desta entrega, documentadas para não parecerem bugs:
 - A importação TXT cria a movimentação com o `PARCELA_ATUAL`/`TOTAL_PARCELAS`
@@ -319,21 +373,24 @@ Simplificações conscientes desta entrega, documentadas para não parecerem bug
   conta.
 - O simulador de quitação assume juros compostos mensais constantes e
   orçamento fixo — é uma projeção educativa, não um cálculo contratual.
+- A nota de saúde financeira usa a média dos últimos 3 meses de receitas
+  recebidas e despesas pagas (view `monthly_cashflow`) — um único mês atípico
+  (ex.: uma despesa grande e pontual) pesa menos do que pesaria olhando só o
+  mês corrente, mas a nota ainda pode variar bastante com poucos meses de
+  histórico.
+- O login social depende dos provedores (Google/GitHub) estarem habilitados
+  no painel do Supabase — isso é uma configuração feita por você fora do
+  código (seção 5 deste README), não algo que o app possa fazer sozinho.
+- A exclusão de conta remove o usuário de `auth.users`, e todas as tabelas em
+  cascata (`on delete cascade`). Ela **não** passa por uma tela de "exportar
+  meus dados antes de excluir" — se quiser um backup, use a exportação CSV
+  em Relatórios antes de confirmar a exclusão.
 
-> A exclusão de conta está com botão visível em **Configurações → Perfil**,
-> mas ao clicar o usuário vê uma explicação honesta do motivo (não pode ser
-> feita com segurança apenas no frontend) em vez de uma ação que falha
-> silenciosamente ou expõe a chave `service_role` no navegador.
-
-### Próximo passo sugerido
-
-Para fechar o projeto com a Fase 4 (Diagnósticos automáticos, nota de saúde
-financeira, Relatórios avançados com exportação CSV, exclusão segura de conta
-via Edge Function e login social), o caminho natural é: uma view/RPC de
-indicadores agregados por mês para alimentar os diagnósticos, a página de
-Relatórios lendo das views já existentes (`account_balances`,
-`budget_progress`, `net_worth_summary`, `credit_card_summary`) e uma Supabase
-Edge Function com `service_role` (fora do frontend) para a exclusão de conta.
+> **Projeto completo:** as 4 fases planejadas foram entregues de forma real.
+> Ideias razoáveis para uma eventual Fase 5 — fora do escopo original —
+> incluem: metas compartilhadas entre usuários, notificações por e-mail de
+> vencimentos, categorização automática por IA na importação, e exportação
+> em PDF dos relatórios.
 
 ---
 
@@ -516,12 +573,14 @@ testes e é o que garante R$ 1.234,56 / DD/MM/AAAA em todo o app.
 - [x] Frontend usa exclusivamente a chave `anon/public`
 - [x] `.env` no `.gitignore`, `.env.example` sem valores reais
 - [x] Constraints no banco (não só na interface): valores monetários `> 0`, combinação válida de conta/cartão por tipo de movimentação, transferência exige conta de destino diferente da origem
-- [x] Exclusão de conta não implementada de forma insegura — está pendente e documentada, em vez de fingir funcionar
+- [x] Exclusão de conta implementada com `service_role` isolado em Edge Function — nunca exposta ao frontend
+- [ ] *(ação sua, antes de publicar)* Fazer o deploy da Edge Function `delete-account` (seção 5) — sem isso, o botão de exclusão mostra um erro amigável em vez de funcionar
+- [ ] *(ação sua, se for usar login social)* Habilitar os provedores Google/GitHub em Authentication → Providers (seção 5)
 - [ ] *(ação sua, antes de publicar)* Confirmar que nenhum segredo real está no histórico do Git
 
 ## Checklist de testes
 
-Cobertos até esta fase (91 testes, `npm run test`):
+Cobertos até esta fase (108 testes, `npm run test`):
 
 - [x] Formatação monetária, numérica, percentual e de datas (padrão brasileiro)
 - [x] Cálculo do status "Atrasado" (computado, nunca altera pago/recebido/cancelado)
@@ -537,10 +596,16 @@ Cobertos até esta fase (91 testes, `npm run test`):
 - [x] Simulador de quitação: inviabilidade (orçamento < mínimos; juros ≥ orçamento), ordem bola de neve × avalanche, avalanche nunca paga mais juros, fechamento contábil (total pago = principal + juros), último mês não estoura o saldo
 - [x] Metas: progresso independente (aportes, resgate nunca negativo) × alocado (limitado ao alvo, conta negativa = 0), aporte mensal necessário até a data-alvo
 - [x] Orçamento: status ok/alerta (80%)/estourado, restante negativo, divisão por zero, normalização de mês e virada de ano
+- [x] Nota de saúde financeira: cada sinal isolado (poupança, reserva, dívidas, orçamento), pesos redistribuídos quando um sinal não tem dado, alertas disparando nos limiares certos, nota sempre entre 0 e 100
+- [x] Exportação CSV: cabeçalho em português, decimal brasileiro, escape de vírgula/aspas/quebra de linha (RFC 4180), múltiplas linhas separadas por CRLF
 
-Planejados para a próxima fase (dependem de funcionalidades ainda não
-implementadas): diagnósticos/nota de saúde, exportação CSV, isolamento por
-usuário em teste de integração (requer projeto Supabase real).
+Não cobertos por testes automatizados (dependem de infraestrutura externa
+real): a Edge Function `delete-account` (Deno, roda no Supabase) e o fluxo de
+login social (depende de provedores OAuth de terceiros) — ambos foram
+revisados manualmente linha a linha; testá-los de ponta a ponta exige um
+projeto Supabase real com os provedores configurados, fora do escopo deste
+ambiente de desenvolvimento local. Também não coberto: isolamento por
+usuário em teste de integração (idem, requer projeto Supabase real).
 
 ## Limitações do PWA
 

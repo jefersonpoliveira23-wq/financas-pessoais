@@ -11,7 +11,10 @@ interface AuthContextValue {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<{ error: string | null }>
+  signInWithOAuth: (provider: 'google' | 'github') => Promise<{ error: string | null }>
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>
+  /** Exclusão definitiva da conta via Edge Function (service_role nunca roda no navegador). */
+  deleteAccount: () => Promise<{ error: string | null }>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -72,9 +75,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error ? translateAuthError(error.message) : null }
   }
 
+  // O redirecionamento pós-login social (Google/GitHub) precisa estar
+  // cadastrado em Authentication → URL Configuration → Redirect URLs no
+  // painel do Supabase (mesma tela usada para o fluxo de "esqueci a senha").
+  async function signInWithOAuth(provider: 'google' | 'github') {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/inicio` },
+    })
+    return { error: error ? translateAuthError(error.message) : null }
+  }
+
   async function updatePassword(newPassword: string) {
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     return { error: error ? translateAuthError(error.message) : null }
+  }
+
+  async function deleteAccount() {
+    const { data, error } = await supabase.functions.invoke<{ success?: boolean; error?: string }>('delete-account')
+    if (error) {
+      return { error: 'Não foi possível excluir a conta. Tente novamente em instantes.' }
+    }
+    if (data?.error) {
+      return { error: data.error }
+    }
+    // A conta já foi apagada no servidor — encerra a sessão local também.
+    await supabase.auth.signOut()
+    return { error: null }
   }
 
   const value: AuthContextValue = {
@@ -86,6 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     requestPasswordReset,
     updatePassword,
+    deleteAccount,
+    signInWithOAuth,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { signUpSchema, type SignUpFormData } from '@/schemas/auth.schema'
 import { useAuth } from '@/hooks/useAuth'
 import { AuthLayout } from '@/features/auth/AuthLayout'
+import { SocialLoginButtons } from '@/features/auth/SocialLoginButtons'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 
@@ -74,6 +75,8 @@ export function SignupPage() {
         <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
           Criar conta
         </Button>
+
+        <SocialLoginButtons />
 
         <p className="text-center text-sm text-(--color-ink-400)">
           Já tem conta?{' '}

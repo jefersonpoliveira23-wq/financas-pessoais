@@ -15,6 +15,8 @@ import { PlanningPage } from '@/features/planning/PlanningPage'
 import { DebtsPage } from '@/features/debts/DebtsPage'
 import { GoalsPage } from '@/features/goals/GoalsPage'
 import { NetWorthPage } from '@/features/networth/NetWorthPage'
+import { DiagnosticsPage } from '@/features/diagnostics/DiagnosticsPage'
+import { ReportsPage } from '@/features/reports/ReportsPage'
 import { TransactionsPage } from '@/features/transactions/TransactionsPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { ComingSoon } from '@/components/layout/ComingSoon'
@@ -53,6 +55,8 @@ export const router = createBrowserRouter([
           { path: '/dividas', element: <DebtsPage /> },
           { path: '/metas', element: <GoalsPage /> },
           { path: '/patrimonio', element: <NetWorthPage /> },
+          { path: '/diagnosticos', element: <DiagnosticsPage /> },
+          { path: '/relatorios', element: <ReportsPage /> },
           { path: '/importar', element: <ImportPage /> },
           { path: '/configuracoes', element: <SettingsPage /> },
           ...comingSoonRoutes,
