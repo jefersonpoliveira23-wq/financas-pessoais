@@ -2,17 +2,24 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { PlusCircle, Tag, ChevronDown, ChevronRight } from 'lucide-react'
+import { PlusCircle, Tag, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { useCategories, useSubcategories, useCreateCategory } from '@/hooks/useCategories'
+import {
+  useCategories,
+  useSubcategories,
+  useCreateCategory,
+  useDeleteCategory,
+  useDeleteSubcategory,
+} from '@/hooks/useCategories'
 import { useToast } from '@/components/ui/Toast'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 const categoryFormSchema = z.object({
   name: z.string().trim().min(1, 'Informe um nome.').max(60),
@@ -30,6 +37,8 @@ function SubcategoryRow({ categoryId }: { categoryId: string }) {
   const { data: subcategories } = useSubcategories(categoryId)
   const { showToast } = useToast()
   const queryClient = useQueryClient()
+  const deleteSubcategory = useDeleteSubcategory()
+  const [deletingSubcategory, setDeletingSubcategory] = useState<{ id: string; name: string } | null>(null)
 
   const {
     register,
@@ -57,8 +66,19 @@ function SubcategoryRow({ categoryId }: { categoryId: string }) {
       {(subcategories?.length ?? 0) > 0 && (
         <ul className="flex flex-wrap gap-1.5">
           {subcategories?.map((s) => (
-            <li key={s.id} className="rounded-full bg-(--color-surface-alt) px-2.5 py-1 text-xs text-(--color-ink-600)">
+            <li
+              key={s.id}
+              className="flex items-center gap-1 rounded-full bg-(--color-surface-alt) py-1 pl-2.5 pr-1.5 text-xs text-(--color-ink-600)"
+            >
               {s.name}
+              <button
+                type="button"
+                onClick={() => setDeletingSubcategory({ id: s.id, name: s.name })}
+                aria-label={`Excluir ${s.name}`}
+                className="rounded-full p-0.5 text-(--color-ink-400) hover:text-(--color-danger-600)"
+              >
+                <Trash2 className="h-3 w-3" aria-hidden="true" />
+              </button>
             </li>
           ))}
         </ul>
@@ -75,6 +95,26 @@ function SubcategoryRow({ categoryId }: { categoryId: string }) {
         </Button>
       </form>
       {errors.name && <span className="text-xs text-(--color-danger-600)">{errors.name.message}</span>}
+
+      <ConfirmDialog
+        open={!!deletingSubcategory}
+        title="Excluir subcategoria?"
+        description={`"${deletingSubcategory?.name}" será removida. Movimentações que usam essa subcategoria ficarão sem subcategoria.`}
+        confirmLabel="Excluir"
+        isLoading={deleteSubcategory.isPending}
+        onCancel={() => setDeletingSubcategory(null)}
+        onConfirm={async () => {
+          if (!deletingSubcategory) return
+          try {
+            await deleteSubcategory.mutateAsync(deletingSubcategory.id)
+            showToast('success', 'Subcategoria excluída.')
+          } catch {
+            showToast('error', 'Não foi possível excluir a subcategoria.')
+          } finally {
+            setDeletingSubcategory(null)
+          }
+        }}
+      />
     </div>
   )
 }
@@ -82,8 +122,10 @@ function SubcategoryRow({ categoryId }: { categoryId: string }) {
 export function CategoriesSection() {
   const { data: categories, isLoading } = useCategories()
   const createCategory = useCreateCategory()
+  const deleteCategory = useDeleteCategory()
   const { showToast } = useToast()
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [deletingCategory, setDeletingCategory] = useState<{ id: string; name: string } | null>(null)
 
   const {
     register,
@@ -131,25 +173,56 @@ export function CategoriesSection() {
         <ul className="divide-y divide-(--color-navy-100)">
           {categories?.map((c) => (
             <li key={c.id} className="py-2">
-              <button
-                onClick={() => setExpanded((current) => (current === c.id ? null : c.id))}
-                className="flex w-full items-center gap-2 py-1 text-left text-sm"
-              >
-                {expanded === c.id ? (
-                  <ChevronDown className="h-4 w-4 text-(--color-ink-400)" aria-hidden="true" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-(--color-ink-400)" aria-hidden="true" />
-                )}
-                <span className="text-(--color-ink-900)">{c.name}</span>
-                <span className="ml-auto rounded-full bg-(--color-navy-100) px-2 py-0.5 text-[11px] text-(--color-navy-700)">
+              <div className="flex w-full items-center gap-2 py-1 text-sm">
+                <button
+                  onClick={() => setExpanded((current) => (current === c.id ? null : c.id))}
+                  className="flex flex-1 items-center gap-2 text-left"
+                >
+                  {expanded === c.id ? (
+                    <ChevronDown className="h-4 w-4 text-(--color-ink-400)" aria-hidden="true" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-(--color-ink-400)" aria-hidden="true" />
+                  )}
+                  <span className="text-(--color-ink-900)">{c.name}</span>
+                </button>
+                <span className="rounded-full bg-(--color-navy-100) px-2 py-0.5 text-[11px] text-(--color-navy-700)">
                   {c.type === 'ambos' ? 'Receita e despesa' : c.type === 'receita' ? 'Receita' : 'Despesa'}
                 </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setDeletingCategory({ id: c.id, name: c.name })}
+                  aria-label={`Excluir ${c.name}`}
+                  className="rounded p-1 text-(--color-ink-400) hover:bg-(--color-surface-alt) hover:text-(--color-danger-600)"
+                >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </div>
               {expanded === c.id && <SubcategoryRow categoryId={c.id} />}
             </li>
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={!!deletingCategory}
+        title="Excluir categoria?"
+        description={`"${deletingCategory?.name}" e suas subcategorias serão removidas. Movimentações vinculadas ficarão sem categoria, e orçamentos dessa categoria serão excluídos.`}
+        confirmLabel="Excluir"
+        isLoading={deleteCategory.isPending}
+        onCancel={() => setDeletingCategory(null)}
+        onConfirm={async () => {
+          if (!deletingCategory) return
+          try {
+            await deleteCategory.mutateAsync(deletingCategory.id)
+            showToast('success', 'Categoria excluída.')
+            setExpanded((current) => (current === deletingCategory.id ? null : current))
+          } catch {
+            showToast('error', 'Não foi possível excluir a categoria.')
+          } finally {
+            setDeletingCategory(null)
+          }
+        }}
+      />
     </Card>
   )
 }
