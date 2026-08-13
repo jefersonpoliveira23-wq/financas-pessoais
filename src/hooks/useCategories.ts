@@ -55,3 +55,30 @@ export function useCreateCategory() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
   })
 }
+
+export function useDeleteCategory() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('categories').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: ['subcategories'] })
+    },
+  })
+}
+
+export function useDeleteSubcategory() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('subcategories').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subcategories'] }),
+  })
+}
