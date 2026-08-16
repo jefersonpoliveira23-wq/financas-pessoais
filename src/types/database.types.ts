@@ -55,6 +55,7 @@ export interface Database {
           full_name: string
           avatar_url: string | null
           week_start_day: number
+          is_admin: boolean
           created_at: string
           updated_at: string
         }
@@ -64,10 +65,29 @@ export interface Database {
           full_name?: string
           avatar_url?: string | null
           week_start_day?: number
+          is_admin?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>
+        Relationships: []
+      }
+      authorized_emails: {
+        Row: {
+          id: string
+          email: string
+          note: string | null
+          added_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          note?: string | null
+          added_by?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['authorized_emails']['Insert']>
         Relationships: []
       }
       user_settings: {
