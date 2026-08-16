@@ -1,21 +1,27 @@
 import { useState } from 'react'
-import { User, Tag, CreditCard, SlidersHorizontal } from 'lucide-react'
+import { User, Tag, CreditCard, SlidersHorizontal, ShieldCheck } from 'lucide-react'
+import { useProfile } from '@/hooks/useProfile'
 import { ProfileSection } from '@/features/settings/ProfileSection'
 import { CategoriesSection } from '@/features/settings/CategoriesSection'
 import { PaymentMethodsSection } from '@/features/settings/PaymentMethodsSection'
 import { PreferencesSection } from '@/features/settings/PreferencesSection'
+import { AccessControlSection } from '@/features/settings/AccessControlSection'
 
-const TABS = [
+const BASE_TABS = [
   { id: 'perfil', label: 'Perfil', icon: User },
   { id: 'categorias', label: 'Categorias', icon: Tag },
   { id: 'pagamento', label: 'Formas de pagamento', icon: CreditCard },
   { id: 'preferencias', label: 'Preferências', icon: SlidersHorizontal },
 ] as const
 
-type TabId = (typeof TABS)[number]['id']
+const ACCESS_TAB = { id: 'acesso', label: 'Acesso', icon: ShieldCheck } as const
+
+type TabId = (typeof BASE_TABS)[number]['id'] | typeof ACCESS_TAB.id
 
 export function SettingsPage() {
+  const { data: profile } = useProfile()
   const [activeTab, setActiveTab] = useState<TabId>('perfil')
+  const tabs = profile?.is_admin ? [...BASE_TABS, ACCESS_TAB] : BASE_TABS
 
   return (
     <div className="flex flex-col gap-6">
@@ -25,7 +31,7 @@ export function SettingsPage() {
       </div>
 
       <div className="flex gap-1 overflow-x-auto border-b border-(--color-navy-100)">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -45,6 +51,7 @@ export function SettingsPage() {
       {activeTab === 'categorias' && <CategoriesSection />}
       {activeTab === 'pagamento' && <PaymentMethodsSection />}
       {activeTab === 'preferencias' && <PreferencesSection />}
+      {activeTab === 'acesso' && profile?.is_admin && <AccessControlSection />}
     </div>
   )
 }
