@@ -3,6 +3,7 @@ import { RouterProvider } from 'react-router-dom'
 import { AuthProvider } from '@/hooks/useAuth'
 import { ToastProvider } from '@/components/ui/Toast'
 import { UpdateAvailableBanner } from '@/components/layout/UpdateAvailableBanner'
+import { OAuthErrorListener } from '@/features/auth/OAuthErrorListener'
 import { router } from '@/routes/router'
 
 const queryClient = new QueryClient({
@@ -21,6 +22,7 @@ function App() {
       <AuthProvider>
         <ToastProvider>
           <UpdateAvailableBanner />
+          <OAuthErrorListener />
           <RouterProvider router={router} />
         </ToastProvider>
       </AuthProvider>
