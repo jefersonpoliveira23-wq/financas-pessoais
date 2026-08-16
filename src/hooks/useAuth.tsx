@@ -30,6 +30,23 @@ function translateAuthError(message: string): string {
   return map[message] ?? message
 }
 
+/**
+ * O cadastro é restrito a e-mails autorizados (ver migration 0006):
+ * o trigger handle_new_user aborta a criação do usuário quando o e-mail
+ * não está na lista, e o Supabase costuma devolver um erro genérico
+ * ("Database error saving new user") em vez do texto original da exceção.
+ * Qualquer erro de signUp fora do mapa conhecido é tratado como bloqueio
+ * de autorização — é o cenário mais provável nesse fluxo.
+ */
+function translateSignUpError(message: string): string {
+  const known: Record<string, string> = {
+    'User already registered': 'Este e-mail já está cadastrado.',
+    'Password should be at least 6 characters': 'A senha deve ter pelo menos 6 caracteres.',
+  }
+  if (known[message]) return known[message]
+  return 'Este e-mail ainda não está autorizado a criar conta neste aplicativo. Peça para o administrador liberar o acesso.'
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -61,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: { data: { full_name: fullName } },
     })
-    return { error: error ? translateAuthError(error.message) : null }
+    return { error: error ? translateSignUpError(error.message) : null }
   }
 
   async function signOut() {
