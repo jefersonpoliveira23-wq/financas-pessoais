@@ -516,6 +516,7 @@ export interface Database {
           status: DebtStatus
           settled_at: string | null
           notes: string | null
+          installment_group_id: string | null
           created_at: string
           updated_at: string
         }
@@ -532,6 +533,7 @@ export interface Database {
           status?: DebtStatus
           settled_at?: string | null
           notes?: string | null
+          installment_group_id?: string | null
           created_at?: string
           updated_at?: string
         }
