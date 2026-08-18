@@ -54,7 +54,9 @@ export function ImportPage() {
   const [autoCreateCategories, setAutoCreateCategories] = useState(true)
   const [duplicateWarningOpen, setDuplicateWarningOpen] = useState(false)
   const [pendingFile, setPendingFile] = useState<{ name: string; content: string; hash: string } | null>(null)
-  const [importedSummary, setImportedSummary] = useState<{ accepted: number; total: number } | null>(null)
+  const [importedSummary, setImportedSummary] = useState<{ accepted: number; total: number; installments: number } | null>(
+    null,
+  )
   const [currentImportId, setCurrentImportId] = useState<string | null>(null)
 
   const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2 MB
@@ -183,10 +185,23 @@ export function ImportPage() {
         })),
       })
 
-      setImportedSummary({ accepted: rowsToImport.length, total: rows.length })
+      const installmentsCreated = rowsToImport.filter(
+        (row) =>
+          row.data!.isRecurring &&
+          row.data!.installmentTotal !== null &&
+          row.data!.installmentNumber !== null &&
+          row.data!.installmentTotal > row.data!.installmentNumber,
+      ).length
+
+      setImportedSummary({ accepted: rowsToImport.length, total: rows.length, installments: installmentsCreated })
       setCurrentImportId(batch.importRecord.id)
       setStep('done')
-      showToast('success', `${rowsToImport.length} movimentações importadas.`)
+      showToast(
+        'success',
+        installmentsCreated > 0
+          ? `${rowsToImport.length} movimentações importadas — ${installmentsCreated} com parcelas geraram dívida e recorrência no calendário.`
+          : `${rowsToImport.length} movimentações importadas.`,
+      )
     } catch {
       showToast('error', 'Não foi possível confirmar a importação. Nada foi criado.')
     }
@@ -214,7 +229,7 @@ export function ImportPage() {
       [
         'DATA;VENCIMENTO;DESCRICAO;VALOR;TIPO;CATEGORIA;SUBCATEGORIA;CONTA;CARTAO;STATUS;FIXO_VARIAVEL;ESSENCIAL;RECORRENTE;PARCELA_ATUAL;TOTAL_PARCELAS;OBSERVACAO',
         '10/08/2026;10/08/2026;Salário;5000,00;RECEITA;SALÁRIO;;CONTA CORRENTE;;RECEBIDO;FIXO;SIM;NAO;1;1;Salário mensal',
-        '10/08/2026;10/09/2026;Notebook;350,00;DESPESA;ELETRÔNICOS;INFORMÁTICA;;NUBANK;PENDENTE;VARIÁVEL;NAO;NAO;1;10;Compra parcelada',
+        '10/08/2026;10/09/2026;Notebook;350,00;DESPESA;ELETRÔNICOS;INFORMÁTICA;;NUBANK;PENDENTE;VARIAVEL;NAO;NAO;1;10;Compra parcelada',
         '15/08/2026;15/08/2026;Aluguel;1200,00;DESPESA;MORADIA;ALUGUEL;CONTA CORRENTE;;PENDENTE;FIXO;SIM;SIM;1;1;Despesa mensal',
       ].join('\n'),
     [],
@@ -394,6 +409,13 @@ export function ImportPage() {
             {importedSummary.accepted} de {importedSummary.total} linhas foram importadas com sucesso. As novas
             movimentações já aparecem no Dashboard, no Calendário e em Movimentações.
           </p>
+          {importedSummary.installments > 0 && (
+            <p className="text-sm text-(--color-ink-600)">
+              {importedSummary.installments} {importedSummary.installments === 1 ? 'linha' : 'linhas'} com parcelas
+              restantes {importedSummary.installments === 1 ? 'gerou' : 'geraram'} as parcelas futuras no Calendário e
+              uma dívida em Dívidas — quitando a dívida por lá, as parcelas futuras somem automaticamente.
+            </p>
+          )}
           <Button onClick={resetFlow}>Importar outro arquivo</Button>
         </Card>
       )}
