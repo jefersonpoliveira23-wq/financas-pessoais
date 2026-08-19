@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LabelList } from 'recharts'
 import { ArrowDownCircle, ArrowUpCircle, Scale, Wallet, PlusCircle } from 'lucide-react'
 import { startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns'
 import { useAccountBalances, useAccounts } from '@/hooks/useAccounts'
@@ -9,7 +9,7 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/Button'
-import { formatCurrency, formatMonthYear, toISODateOnly } from '@/utils/format'
+import { formatCurrency, formatCurrencyCompact, formatMonthYear, toISODateOnly } from '@/utils/format'
 import { StatusBanner } from '@/features/dashboard/StatusBanner'
 import {
   TimelineSection,
@@ -87,6 +87,7 @@ export function DashboardPage() {
     { nome: 'Receitas', valor: summary.receitasRecebidas, fill: 'var(--color-success-600)' },
     { nome: 'Despesas', valor: summary.despesasPagas, fill: 'var(--color-danger-600)' },
   ]
+  const receitasDespesasMax = Math.max(summary.receitasRecebidas, summary.despesasPagas, 1)
 
   const isLoading = loadingAccounts || loadingBalances || loadingTransactions
   const hasNoAccounts = !loadingAccounts && (accounts?.length ?? 0) === 0
@@ -116,14 +117,14 @@ export function DashboardPage() {
       timelineToday,
       DASHBOARD_TIMELINE_MONTHS_BACK,
       DASHBOARD_TIMELINE_MONTHS_FORWARD,
-    )
+   )
   }, [debtsOnly, fullTimeline, timelineTransactions, timelineToday])
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-(--color-ink-900)">Início</h1>
+          <h1 className="font-display text-2xl font-semibold text-(--color-ink-900)">Iîcio</h1>
           <p className="text-sm text-(--color-ink-400)">Sua situação financeira em {formatMonthYear(referenceDate)}.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -203,18 +204,32 @@ export function DashboardPage() {
               />
             ) : (
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={chartData} barSize={64}>
+                <BarChart data={chartData} barSize={64} margin={{ top: 24, right: 12, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-navy-100)" vertical={false} />
                   <XAxis dataKey="nome" tickLine={false} axisLine={false} fontSize={12} />
                   <YAxis
-                    tickFormatter={(v) => formatCurrency(v)}
+                    tickFormatter={(v) => formatCurrencyCompact(v)}
                     tickLine={false}
                     axisLine={false}
                     fontSize={11}
-                    width={90}
+                    width={72}
+                    domain={[0, receitasDespesasMax * 1.15]}
                   />
                   <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                  <Bar dataKey="valor" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="valor" radius={[6, 6, 0, 0]}>
+                    {chartData.map((entry) => (
+                      <Cell key={entry.nome} fill={entry.fill} />
+                    ))}
+                    <LabelList
+                      dataKey="valor"
+                      position="top"
+                      formatter={(v: number) => formatCurrencyCompact(v)}
+                      fill="var(--color-ink-900)"
+                      fontSize={12}
+                      fontWeight={600}
+                      offset={8}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
