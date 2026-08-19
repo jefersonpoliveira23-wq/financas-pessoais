@@ -33,6 +33,20 @@ export function formatCurrency(value: number): string {
   return currencyFormatter.format(value)
 }
 
+/**
+ * Formata moeda de forma compacta para rótulos de gráfico (espaço é curto):
+ * 1234.56 -> "R$ 1,2 mil", 1500000 -> "R$ 1,5 mi". Abaixo de R$ 1.000, usa o
+ * formato completo (não vale a pena abreviar).
+ */
+export function formatCurrencyCompact(value: number): string {
+  if (!Number.isFinite(value)) return formatCurrency(0)
+  const abs = Math.abs(value)
+  const sign = value < 0 ? '-' : ''
+  if (abs < 1000) return formatCurrency(value)
+  if (abs < 1_000_000) return `${sign}R$ ${(abs / 1000).toFixed(1).replace('.', ',')} mil`
+  return `${sign}R$ ${(abs / 1_000_000).toFixed(1).replace('.', ',')} mi`
+}
+
 /** Formata um número simples com separador decimal brasileiro: 1234.5 -> "1.234,50" */
 export function formatNumber(value: number): string {
   if (!Number.isFinite(value)) return numberFormatter.format(0)
