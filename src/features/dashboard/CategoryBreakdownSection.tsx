@@ -8,7 +8,7 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { Select } from '@/components/ui/Select'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatPercent } from '@/utils/format'
 
 const PALETTE = [
   'var(--color-navy-600)',
@@ -79,15 +79,22 @@ export function CategoryBreakdownSection() {
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                outerRadius={90}
-                label={(e) => e.name}
+                outerRadius={85}
+                label={(e) => `${e.name} — ${formatPercent(e.percent ?? 0)}`}
+                labelLine
               >
-                {chartData.map((_, i) => (
-                  <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                {chartData.map((entry, i) => (
+                  <Cell key={entry.name} fill={PALETTE[i % PALETTE.length]} />
                 ))}
               </Pie>
               <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-              <Legend />
+              <Legend
+                formatter={(value, entry) => {
+                  const payload = (entry as { payload?: { value?: number } })?.payload
+                  const v = payload?.value ?? 0
+                  return `${value} (${formatCurrency(v)})`
+                }}
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>
