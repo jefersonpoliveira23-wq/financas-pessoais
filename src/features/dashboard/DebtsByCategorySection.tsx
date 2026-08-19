@@ -8,7 +8,7 @@ import { aggregateDebtsByCategory } from '@/utils/debtsByCategory'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatPercent } from '@/utils/format'
 
 /** Visão de longo prazo: quanto do saldo devedor total está concentrado em cada categoria. */
 export function DebtsByCategorySection() {
@@ -51,7 +51,10 @@ export function DebtsByCategorySection() {
               <li key={t.categoryId ?? '__other__'} className="flex flex-col gap-1">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-(--color-ink-900)">{t.name}</span>
-                  <span className="tabular-nums font-medium text-(--color-ink-900)">{formatCurrency(t.value)}</span>
+                  <span className="tabular-nums font-medium text-(--color-ink-900)">
+                    {formatCurrency(t.value)}
+                    <span className="ml-1.5 text-(--color-ink-400)">({formatPercent(percent, { alreadyPercent: true })})</span>
+                  </span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-(--color-navy-50)">
                   <div className="h-full rounded-full bg-(--color-danger-500)" style={{ width: `${percent}%` }} />
