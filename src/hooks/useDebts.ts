@@ -26,6 +26,26 @@ export function useDebts() {
   })
 }
 
+/**
+ * Todos os pagamentos de dívida do usuário desde uma data — usado no
+ * dashboard para calcular quanto de principal foi abatido nos últimos meses
+ * (ver `@/utils/dashboardInsights`). Diferente de `useDebtPayments`, que é
+ * por dívida específica.
+ */
+export function useAllDebtPayments(sinceISO: string) {
+  const { user } = useAuth()
+
+  return useQuery({
+    queryKey: ['debt_payments_all', user?.id, sinceISO],
+    enabled: !!user,
+    queryFn: async (): Promise<DebtPayment[]> => {
+      const { data, error } = await supabase.from('debt_payments').select('*').gte('payment_date', sinceISO)
+      if (error) throw error
+      return data
+    },
+  })
+}
+
 export function useDebtPayments(debtId: string | null) {
   const { user } = useAuth()
 
