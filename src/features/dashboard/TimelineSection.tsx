@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  LabelList,
 } from 'recharts'
 import { CalendarRange } from 'lucide-react'
 import { useTransactions } from '@/hooks/useTransactions'
@@ -17,7 +18,7 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { formatCurrency, formatMonthYear, toISODateOnly } from '@/utils/format'
+import { formatCurrency, formatCurrencyCompact, formatMonthYear, toISODateOnly } from '@/utils/format'
 import { addMonths, endOfMonth, startOfMonth, subMonths } from 'date-fns'
 
 const MONTHS_BACK = 3
@@ -105,16 +106,45 @@ export function TimelineSection({
       ) : (
         <div className="mt-2 h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData}>
+            <ComposedChart data={chartData} margin={{ top: 24, right: 12, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-navy-50)" />
               <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: number) => formatCurrency(v)} width={90} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: number) => formatCurrencyCompact(v)} width={72} />
               <Tooltip formatter={(v) => formatCurrency(Number(v))} />
               <ReferenceLine y={0} stroke="var(--color-navy-200)" />
-              <Bar dataKey="Realizado" stackId="despesa" fill="var(--color-danger-600)" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="Previsto" stackId="despesa" fill="var(--color-danger-200)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Realizado" stackId="despesa" fill="var(--color-danger-600)" radius={[0, 0, 0, 0]}>
+                <LabelList
+                  dataKey="Realizado"
+                  position="center"
+                  formatter={(v: number) => (v > 0 ? formatCurrencyCompact(v) : '')}
+                  fill="#ffffff"
+                  fontSize={11}
+                  fontWeight={600}
+                />
+              </Bar>
+              <Bar dataKey="Previsto" stackId="despesa" fill="var(--color-danger-200)" radius={[4, 4, 0, 0]}>
+                <LabelList
+                  dataKey="total"
+                  position="top"
+                  formatter={(v: number) => (v > 0 ? formatCurrencyCompact(v) : '')}
+                  fill="var(--color-ink-600)"
+                  fontSize={11}
+                  fontWeight={600}
+                  offset={8}
+                />
+              </Bar>
               {showIncome && (
-                <Line type="monotone" dataKey="Receitas" stroke="var(--color-success-600)" strokeWidth={2} dot />
+                <Line type="monotone" dataKey="Receitas" stroke="var(--color-success-600)" strokeWidth={2} dot>
+                  <LabelList
+                    dataKey="Receitas"
+                    position="top"
+                    formatter={(v: number) => (v > 0 ? formatCurrencyCompact(v) : '')}
+                    fill="var(--color-success-700)"
+                    fontSize={11}
+                    fontWeight={600}
+                    offset={10}
+                  />
+                </Line>
               )}
             </ComposedChart>
           </ResponsiveContainer>
