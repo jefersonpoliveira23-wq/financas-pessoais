@@ -7,7 +7,7 @@ import { goalProgress, monthlyContributionNeeded } from '@/utils/goals'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { formatCurrency, formatDate } from '@/utils/format'
+import { formatCurrency, formatDate, formatPercent } from '@/utils/format'
 
 /** Evolução das metas: progresso atual + ritmo mensal necessário para bater a data-alvo. */
 export function GoalsEvolutionSection() {
@@ -60,6 +60,9 @@ export function GoalsEvolutionSection() {
                 <span className="font-medium text-(--color-ink-900)">{goal.name}</span>
                 <span className="tabular-nums text-(--color-ink-600)">
                   {formatCurrency(progress.current)} de {formatCurrency(goal.target_amount)}
+                  <span className="ml-1.5 font-medium text-(--color-ink-900)">
+                    ({formatPercent(progress.percent, { alreadyPercent: true })})
+                  </span>
                 </span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-(--color-navy-50)">
