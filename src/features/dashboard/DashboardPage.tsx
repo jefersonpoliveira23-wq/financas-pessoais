@@ -10,6 +10,18 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/Button'
 import { formatCurrency, formatMonthYear, toISODateOnly } from '@/utils/format'
+import { StatusBanner } from '@/features/dashboard/StatusBanner'
+import {
+  TimelineSection,
+  useDashboardTimelineWindow,
+  DASHBOARD_TIMELINE_MONTHS_BACK,
+  DASHBOARD_TIMELINE_MONTHS_FORWARD,
+} from '@/features/dashboard/TimelineSection'
+import { InsightsSection } from '@/features/dashboard/InsightsSection'
+import { CategoryBreakdownSection } from '@/features/dashboard/CategoryBreakdownSection'
+import { DebtsByCategorySection } from '@/features/dashboard/DebtsByCategorySection'
+import { GoalsEvolutionSection } from '@/features/dashboard/GoalsEvolutionSection'
+import { buildMonthlyTimeline } from '@/utils/dashboardTimeline'
 
 function IndicatorCard({
   label,
@@ -79,6 +91,34 @@ export function DashboardPage() {
   const isLoading = loadingAccounts || loadingBalances || loadingTransactions
   const hasNoAccounts = !loadingAccounts && (accounts?.length ?? 0) === 0
 
+  const [debtsOnly, setDebtsOnly] = useState(false)
+  const {
+    transactions: timelineTransactions,
+    isLoading: loadingTimelineWindow,
+    today: timelineToday,
+  } = useDashboardTimelineWindow()
+
+  const fullTimeline = useMemo(
+    () =>
+      buildMonthlyTimeline(
+        timelineTransactions,
+        timelineToday,
+        DASHBOARD_TIMELINE_MONTHS_BACK,
+        DASHBOARD_TIMELINE_MONTHS_FORWARD,
+      ),
+    [timelineTransactions, timelineToday],
+  )
+  const displayedTimeline = useMemo(() => {
+    if (!debtsOnly) return fullTimeline
+    const debtsOnlyTx = timelineTransactions.filter((t) => t.installment_group_id !== null)
+    return buildMonthlyTimeline(
+      debtsOnlyTx,
+      timelineToday,
+      DASHBOARD_TIMELINE_MONTHS_BACK,
+      DASHBOARD_TIMELINE_MONTHS_FORWARD,
+    )
+  }, [debtsOnly, fullTimeline, timelineTransactions, timelineToday])
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -117,6 +157,7 @@ export function DashboardPage() {
 
       {!hasNoAccounts && (
         <>
+          <StatusBanner />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {isLoading ? (
               Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
@@ -247,6 +288,26 @@ export function DashboardPage() {
               </ul>
             )}
           </Card>
+
+          <TimelineSection
+            timeline={displayedTimeline}
+            isLoading={loadingTimelineWindow}
+            debtsOnly={debtsOnly}
+            onToggleDebtsOnly={setDebtsOnly}
+          />
+
+          <InsightsSection
+            timelineTransactions={timelineTransactions}
+            timeline={fullTimeline}
+            isLoadingTimeline={loadingTimelineWindow}
+          />
+
+          <CategoryBreakdownSection />
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <DebtsByCategorySection />
+            <GoalsEvolutionSection />
+          </div>
         </>
       )}
     </div>
