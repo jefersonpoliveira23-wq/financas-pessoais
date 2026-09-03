@@ -223,7 +223,7 @@ export function DashboardPage() {
                     <LabelList
                       dataKey="valor"
                       position="top"
-                      formatter={(v: number) => formatCurrencyCompact(v)}
+                      formatter={(v: string | number | boolean | null | undefined) => formatCurrencyCompact(Number(v) || 0)}
                       fill="var(--color-ink-900)"
                       fontSize={12}
                       fontWeight={600}
