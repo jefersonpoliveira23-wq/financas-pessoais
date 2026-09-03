@@ -116,7 +116,7 @@ export function TimelineSection({
                 <LabelList
                   dataKey="Realizado"
                   position="center"
-                  formatter={(v: number) => (v > 0 ? formatCurrencyCompact(v) : '')}
+                  formatter={(v: string | number | boolean | null | undefined) => (Number(v) > 0 ? formatCurrencyCompact(Number(v)) : '')}
                   fill="#ffffff"
                   fontSize={11}
                   fontWeight={600}
@@ -126,7 +126,7 @@ export function TimelineSection({
                 <LabelList
                   dataKey="total"
                   position="top"
-                  formatter={(v: number) => (v > 0 ? formatCurrencyCompact(v) : '')}
+                  formatter={(v: string | number | boolean | null | undefined) => (Number(v) > 0 ? formatCurrencyCompact(Number(v)) : '')}
                   fill="var(--color-ink-600)"
                   fontSize={11}
                   fontWeight={600}
@@ -138,7 +138,7 @@ export function TimelineSection({
                   <LabelList
                     dataKey="Receitas"
                     position="top"
-                    formatter={(v: number) => (v > 0 ? formatCurrencyCompact(v) : '')}
+                    formatter={(v: string | number | boolean | null | undefined) => (Number(v) > 0 ? formatCurrencyCompact(Number(v)) : '')}
                     fill="var(--color-success-700)"
                     fontSize={11}
                     fontWeight={600}
