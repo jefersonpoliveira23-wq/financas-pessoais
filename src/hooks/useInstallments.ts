@@ -59,6 +59,27 @@ export function useCreateInstallmentGroup() {
   })
 }
 
+/** Gera as parcelas futuras que faltam para uma parcela avulsa (ex.: importada sem RECORRENTE=SIM). */
+export function useGenerateRemainingInstallments() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (transactionId: string) => {
+      const { data, error } = await supabase.rpc('generate_remaining_installments', {
+        p_transaction_id: transactionId,
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['account_balances'] })
+      queryClient.invalidateQueries({ queryKey: ['card_transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['credit_card_summary'] })
+    },
+  })
+}
+
 export type InstallmentEditScope = 'only_this' | 'this_and_future' | 'all'
 
 /** Exclui parcelas do grupo conforme o escopo escolhido, e ajusta total_installments do grupo restante. */
