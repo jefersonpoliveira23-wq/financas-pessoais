@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { PlusCircle, ArrowLeftRight, Pencil, Trash2, CheckCircle2, Repeat, Calendar } from 'lucide-react'
+import { PlusCircle, ArrowLeftRight, Pencil, Trash2, CheckCircle2, Repeat, Calendar, CalendarPlus } from 'lucide-react'
 import {
   useTransactions,
   useCreateTransaction,
@@ -12,6 +12,7 @@ import {
 import {
   useCreateInstallmentGroup,
   useDeleteInstallmentScope,
+  useGenerateRemainingInstallments,
   type InstallmentEditScope,
 } from '@/hooks/useInstallments'
 import { useAccounts } from '@/hooks/useAccounts'
@@ -52,7 +53,9 @@ export function TransactionsPage() {
   const markPaid = useMarkTransactionPaid()
   const createInstallmentGroup = useCreateInstallmentGroup()
   const deleteInstallmentScope = useDeleteInstallmentScope()
+  const generateRemainingInstallments = useGenerateRemainingInstallments()
   const { showToast } = useToast()
+  const [generatingId, setGeneratingId] = useState<string | null>(null)
 
   const [modalOpen, setModalOpen] = useState(() =>
     Boolean((location.state as { openCreate?: boolean } | null)?.openCreate),
@@ -189,6 +192,18 @@ export function TransactionsPage() {
       showToast('success', status === 'pago' ? 'Marcado como pago.' : 'Marcado como recebido.')
     } catch {
       showToast('error', 'Não foi possível atualizar o status.')
+    }
+  }
+
+  async function handleGenerateRemainingInstallments(transaction: Transaction) {
+    setGeneratingId(transaction.id)
+    try {
+      await generateRemainingInstallments.mutateAsync(transaction.id)
+      showToast('success', 'Parcelas restantes geradas.')
+    } catch {
+      showToast('error', 'Não foi possível gerar as parcelas restantes.')
+    } finally {
+      setGeneratingId(null)
     }
   }
 
@@ -368,7 +383,12 @@ export function TransactionsPage() {
                   {(transactions ?? []).map((t) => {
                     const status = effectiveStatus(t)
                     const canMarkPaid = status === 'pendente' || status === 'previsto' || status === 'atrasado'
-                    const isTransferOrCardPurchase = t.type === 'transferencia' || t.type === 'compra_cartao'
+                    const isTransfer = t.type === 'transferencia'
+                    const hasMissingInstallments =
+                      !t.installment_group_id &&
+                      t.installment_number != null &&
+                      t.installment_total != null &&
+                      t.installment_total > t.installment_number
                     return (
                       <tr key={t.id} className="hover:bg-(--color-surface-alt)/50">
                         <td className="px-4 py-3 text-(--color-ink-900)">
@@ -399,7 +419,18 @@ export function TransactionsPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
-                            {canMarkPaid && !isTransferOrCardPurchase && (
+                            {hasMissingInstallments && (
+                              <button
+                                onClick={() => handleGenerateRemainingInstallments(t)}
+                                disabled={generatingId === t.id}
+                                aria-label="Gerar parcelas restantes"
+                                title="Gerar parcelas restantes"
+                                className="rounded p-1.5 text-(--color-ink-400) hover:bg-(--color-navy-100) hover:text-(--color-navy-700) disabled:opacity-50"
+                              >
+                                <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+                              </button>
+                            )}
+                            {canMarkPaid && !isTransfer && (
                               <button
                                 onClick={() => handleMarkPaid(t)}
                                 aria-label="Marcar como pago/recebido"
