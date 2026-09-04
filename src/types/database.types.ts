@@ -796,6 +796,10 @@ export interface Database {
         }
         Returns: Database['public']['Tables']['transactions']['Row'][]
       }
+      generate_remaining_installments: {
+        Args: { p_transaction_id: string }
+        Returns: Database['public']['Tables']['transactions']['Row'][]
+      }
       materialize_recurrence_rule: {
         Args: { p_rule_id: string; p_until: string }
         Returns: Database['public']['Tables']['transactions']['Row'][]
