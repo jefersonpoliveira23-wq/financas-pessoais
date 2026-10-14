@@ -1,6 +1,16 @@
 import { useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { PlusCircle, ArrowLeftRight, Pencil, Trash2, CheckCircle2, Repeat, Calendar, CalendarPlus } from 'lucide-react'
+import {
+  PlusCircle,
+  ArrowLeftRight,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  Repeat,
+  Calendar,
+  CalendarPlus,
+  Search,
+} from 'lucide-react'
 import {
   useTransactions,
   useCreateTransaction,
@@ -301,6 +311,27 @@ export function TransactionsPage() {
                 </option>
               ))}
             </Select>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="filterSearch" className="text-sm font-medium text-(--color-ink-900)">
+                Descrição
+              </label>
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--color-ink-400)"
+                  aria-hidden="true"
+                />
+                <input
+                  id="filterSearch"
+                  type="search"
+                  placeholder="Buscar por nome"
+                  value={filters.search ?? ''}
+                  onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value || undefined }))}
+                  className="h-10 w-56 rounded-lg border border-(--color-navy-100) bg-white pl-9 pr-3 text-sm text-(--color-ink-900)
+                    focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-navy-500)"
+                />
+              </div>
+            </div>
 
             <div className="flex flex-col gap-1.5">
               <label htmlFor="filterFrom" className="text-sm font-medium text-(--color-ink-900)">
