@@ -136,7 +136,8 @@ export function useConfirmImport() {
         p_new_categories: input.newCategories.map((c) => ({ temp_key: c.tempKey, name: c.name, type: c.type })),
         p_rows: input.rows.map((r) => ({
           import_row_id: r.importRowId,
-          type: r.type,
+          // Compra no cartão é gravada como 'compra_cartao' (o banco exige: sem conta, com cartão).
+          type: r.cardId && r.type === 'despesa' ? 'compra_cartao' : r.type,
           description: r.description,
           amount: r.amount,
           transaction_date: r.transactionDate,
