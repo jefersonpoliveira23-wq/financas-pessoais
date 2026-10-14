@@ -11,6 +11,9 @@ export interface TransactionFilters {
   from?: string
   to?: string
   accountId?: string
+  cardId?: string
+  /** Busca parcial (sem diferenciar maiúsculas) na descrição. */
+  search?: string
   categoryId?: string
   status?: string
   type?: string
@@ -28,6 +31,12 @@ export function useTransactions(filters: TransactionFilters = {}) {
       if (filters.from) query = query.gte('competence_date', filters.from)
       if (filters.to) query = query.lte('competence_date', filters.to)
       if (filters.accountId) query = query.eq('account_id', filters.accountId)
+      if (filters.cardId) query = query.eq('card_id', filters.cardId)
+      const term = filters.search
+        ?.trim()
+        .replace(/[%_\\,()]/g, ' ')
+        .trim()
+      if (term) query = query.ilike('description', `%${term}%`)
       if (filters.categoryId) query = query.eq('category_id', filters.categoryId)
       if (filters.status) query = query.eq('status', filters.status as Transaction['status'])
       if (filters.type) query = query.eq('type', filters.type as Transaction['type'])
